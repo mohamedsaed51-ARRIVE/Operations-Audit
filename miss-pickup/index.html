@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARRIVE | لوحة رقابة Miss Pickup</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--color-fg:#0F172A;--color-fg-muted:#64748B;--color-bg:#F4F8FD;--color-panel:#fff;--color-border-line:#E2E8F0}
+:root[data-theme="dark"]{--color-fg:#E8EEF9;--color-fg-muted:#8D9BB8;--color-bg:#0A1020;--color-panel:#111A31;--color-border-line:#22304F}
+html,body{margin:0;background:var(--color-bg)}
+body{max-width:1440px;margin-inline:auto}
+:root[data-theme="dark"] .mp tbody tr:hover td{background:#16213D;color:#E8EEF9}
+.mp-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.mp-btn{font:inherit;font-size:12.5px;font-weight:600;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);border-radius:8px;padding:5px 12px;cursor:pointer}
+.mp-btn:hover{background:rgba(255,255,255,.22)}
+.mp-conn{display:inline-flex;align-items:center;gap:6px}
+.mp-conn[data-state="live"] i{background:#22C55E}.mp-conn[data-state="local"] i{background:#F59E0B}.mp-conn[data-state="error"] i{background:#EF4444}
+.mp-modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.mp-modal.open{display:flex}
+.mp-modal>div{background:var(--color-panel);color:var(--color-fg);border-radius:14px;padding:22px;width:min(520px,100%);box-shadow:0 8px 24px rgba(15,23,42,.3)}
+.mp-modal h3{margin:0 0 6px}.mp-modal input{width:100%;direction:ltr;margin:10px 0;font:inherit;padding:8px 10px;border:1px solid var(--color-border-line);border-radius:8px;background:var(--color-bg);color:var(--color-fg)}
+.mp-modal .row{display:flex;gap:8px;justify-content:flex-end}
+.mp-modal .mp-reset.solid{background:var(--arrive-blue);color:#fff}
+
+.mp{--arrive-blue:#0837C9;--arrive-teal:#00C7E6;--arrive-navy:#0F172A;--arrive-light-blue:#E6F4FF;--arrive-blue-700:#062BA0;--arrive-teal-600:#00A9C4;
+--s-ok-bg:#DCFCE7;--s-ok-fg:#15803D;--s-prog-bg:#DBEAFE;--s-prog-fg:#1D4ED8;--s-act-bg:#FEF3C7;--s-act-fg:#B45309;--s-bad-bg:#FEE2E2;--s-bad-fg:#B91C1C;--s-off-bg:#F1F5F9;--s-off-fg:#475569;
+--st-ok:#22C55E;--st-prog:#3B82F6;--st-act:#F59E0B;--st-bad:#EF4444;--st-off:#64748B;
+font-family:'Cairo','Inter',var(--font-anthropic-sans),system-ui,sans-serif;color:var(--color-fg);display:flex;flex-direction:column;gap:0;font-size:14px;line-height:1.6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .mp{--s-ok-bg:rgba(34,197,94,.16);--s-ok-fg:#4ADE80;--s-prog-bg:rgba(59,130,246,.18);--s-prog-fg:#93C5FD;--s-act-bg:rgba(245,158,11,.16);--s-act-fg:#FCD34D;--s-bad-bg:rgba(239,68,68,.16);--s-bad-fg:#FCA5A5;--s-off-bg:rgba(148,163,184,.16);--s-off-fg:#CBD5E1}}
+:root[data-theme="dark"] .mp{--s-ok-bg:rgba(34,197,94,.16);--s-ok-fg:#4ADE80;--s-prog-bg:rgba(59,130,246,.18);--s-prog-fg:#93C5FD;--s-act-bg:rgba(245,158,11,.16);--s-act-fg:#FCD34D;--s-bad-bg:rgba(239,68,68,.16);--s-bad-fg:#FCA5A5;--s-off-bg:rgba(148,163,184,.16);--s-off-fg:#CBD5E1}
+.mp *{box-sizing:border-box}
+.mp b{font-weight:700}
+.num,.mp-stub b,.mp-meta b,.mp td.n,.mp td.sh{font-family:'Inter','Cairo',system-ui,sans-serif;direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
+.mp-top{background:var(--arrive-blue);color:#fff;border-bottom:4px solid var(--arrive-teal);padding:20px 28px 22px;border-radius:0 0 14px 14px}
+.mp-top-row{display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;align-items:flex-start}
+.mp-logo{height:44px;width:auto;display:block;margin-bottom:14px}
+.mp-eyebrow{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--arrive-teal);margin-bottom:4px}
+.mp-title{font-size:30px;font-weight:800;line-height:1.2;margin:0}
+.mp-take{margin:8px 0 0;font-size:14px;opacity:.92;max-width:60ch}
+.mp-take b{background:rgba(255,255,255,.16);border-radius:6px;padding:0 6px}
+.mp-chip{display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:12px;background:rgba(255,255,255,.12);border-radius:999px;padding:3px 12px}
+.mp-chip i{width:8px;height:8px;border-radius:50%;background:var(--arrive-teal);display:inline-block}
+.mp-meta{display:flex;gap:10px;flex-wrap:wrap}
+.mp-meta div{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:10px 16px;min-width:104px;text-align:center}
+.mp-meta b{display:block;font-size:26px;font-weight:700;line-height:1.1}
+.mp-meta span{font-size:11.5px;opacity:.85}
+.mp-body{padding:0 28px 32px;display:flex;flex-direction:column;gap:14px}
+.mp-warn{margin-top:18px;border:1px solid var(--st-act);border-inline-start:4px solid var(--st-act);border-radius:10px;padding:10px 14px;font-size:12.5px;line-height:1.8;background:var(--s-act-bg);color:var(--s-act-fg)}
+.mp-sec{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:22px 0 0}
+.mp-sec h2{font-size:20px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px;line-height:1.35}
+.mp-sec h2::before{content:"";width:4px;height:22px;border-radius:2px;background:var(--arrive-teal)}
+.mp-sec .tag{font-size:11px;font-weight:700;color:var(--arrive-blue-700);background:var(--arrive-light-blue);border-radius:6px;padding:2px 9px}
+.mp-sec .sub{font-size:12px;color:var(--color-fg-muted)}
+.mp-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10.5rem),1fr));gap:14px}
+.mp-stub{position:relative;background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:10px;box-shadow:0 1px 3px rgba(15,23,42,.06),0 4px 14px rgba(8,55,201,.06);padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-height:7.5rem;overflow:hidden}
+.mp-stub::before{content:"";position:absolute;inset-inline:0;top:0;height:4px;background:var(--ac,var(--arrive-blue))}
+.mp-stub span{font-size:12.5px;font-weight:600;color:var(--color-fg-muted)}
+.mp-stub b{font-size:clamp(26px,2.3vw,34px);font-weight:700;line-height:1.1;text-align:start}
+.mp-stub small{font-size:11.5px;color:var(--color-fg-muted)}
+.mp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:14px}
+.mp-card{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:10px;box-shadow:0 1px 3px rgba(15,23,42,.06),0 4px 14px rgba(8,55,201,.06);padding:18px;min-width:0}
+.mp-card h3{font-size:16px;font-weight:700;margin:0 0 2px}
+.mp-card p{margin:0 0 10px;font-size:12px;color:var(--color-fg-muted)}
+.mp table{width:100%;border-collapse:collapse;font-size:13px}
+.mp th{text-align:start;font-weight:700;color:#fff;background:var(--arrive-blue);padding:8px 10px;white-space:nowrap;font-size:12.5px}
+.mp th:first-child{border-start-start-radius:6px}.mp th:last-child{border-start-end-radius:6px}
+.mp td{padding:7px 10px;border-bottom:1px solid var(--color-border-line);vertical-align:middle}
+.mp tbody tr:hover td{background:var(--arrive-light-blue);color:var(--arrive-navy)}
+.mp-bar{position:relative;z-index:0}
+.mp-bar::before{content:"";position:absolute;inset-block:5px;inset-inline-start:0;width:var(--w);background:var(--c);opacity:.18;border-radius:4px;z-index:-1}
+.mp-badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:1px 10px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--bg);color:var(--fg)}
+.mp-badge::before{content:var(--ic);font-size:11px}
+.b-bad{--bg:var(--s-bad-bg);--fg:var(--s-bad-fg);--ic:"⚠"}.b-prog{--bg:var(--s-prog-bg);--fg:var(--s-prog-fg);--ic:"◔"}
+.b-act{--bg:var(--s-act-bg);--fg:var(--s-act-fg);--ic:"✎"}.b-ok{--bg:var(--s-ok-bg);--fg:var(--s-ok-fg);--ic:"✔"}.b-off{--bg:var(--s-off-bg);--fg:var(--s-off-fg);--ic:"•"}
+.mp-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:12px;padding:12px;background:var(--color-bg);border:1px solid var(--color-border-line);border-radius:10px}
+.mp-fg{display:flex;flex-direction:column;gap:3px;min-width:10rem}
+.mp-fg.grow{flex:1;min-width:14rem}
+.mp-fg label{font-size:11.5px;font-weight:600;color:var(--color-fg-muted)}
+.mp-filters select,.mp-filters input{font:inherit;font-size:13px;min-height:34px;padding:5px 10px;border:1px solid var(--color-border-line);border-radius:7px;background:var(--color-panel);color:var(--color-fg)}
+.mp-filters select:focus-visible,.mp-filters input:focus-visible{outline:none;border-color:var(--arrive-blue);box-shadow:0 0 0 3px rgba(0,199,230,.45)}
+.mp-count{margin-inline-start:auto;font-size:12.5px;color:var(--color-fg-muted)}
+.mp-count b{color:var(--arrive-blue);font-size:15px}
+.mp-reset{font:inherit;font-size:12.5px;font-weight:600;min-height:34px;padding:5px 14px;border:1px solid var(--arrive-blue);border-radius:7px;background:transparent;color:var(--arrive-blue);cursor:pointer}
+.mp-reset:hover{background:var(--arrive-blue);color:#fff}
+.mp-scroll{max-height:540px;overflow:auto;border-radius:8px}
+.mp-scroll th{position:sticky;top:0;cursor:pointer;z-index:1}
+.mp-scroll th[aria-sort="ascending"]::after{content:" ▲";font-size:9px}.mp-scroll th[aria-sort="descending"]::after{content:" ▼";font-size:9px}
+.mp-empty{margin:10px 0 0;color:var(--color-fg-muted);font-size:12.5px}
+td.id{font-family:'JetBrains Mono',ui-monospace,monospace;direction:ltr;unicode-bidi:isolate;font-size:12px}
+@media (max-width:640px){.mp-top{padding:16px}.mp-body{padding:0 14px 24px}.mp-title{font-size:24px}}
+@media print{.mp-filters,.mp-reset{display:none}.mp-top{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+/* ---- v2: بطاقات تفاعلية، مسار المتابعة، جودة البيانات ---- */
+.mp-stub.click{font:inherit;color:inherit;text-align:start;cursor:pointer;width:100%;transition:transform .12s,box-shadow .12s}
+.mp-stub.click:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(15,23,42,.12)}
+.mp-stub.click:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(0,199,230,.45)}
+.mp-stub.on{outline:2px solid var(--arrive-blue);outline-offset:-1px}
+.mp-stub small b{font-size:inherit;font-weight:700}
+.mp-funnel{display:flex;height:22px;border-radius:999px;overflow:hidden;background:var(--s-off-bg)}
+.mp-funnel i{display:block;height:100%}
+.mp-legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:12px;font-size:12.5px}
+.mp-legend span{display:inline-flex;align-items:center;gap:6px}
+.mp-legend em{width:10px;height:10px;border-radius:3px;display:inline-block}
+.mp-legend b{font-family:'Inter','Cairo',sans-serif;direction:ltr;unicode-bidi:isolate}
+.mp-drill tbody tr{cursor:pointer}
+.mp-fchip{font:inherit;font-size:12px;font-weight:600;background:var(--arrive-light-blue);color:var(--arrive-blue-700);border:0;border-radius:999px;padding:3px 12px;cursor:pointer}
+.mp-fchip[hidden]{display:none}
+.mp-hint{font-size:11.5px;color:var(--color-fg-muted);margin:0 0 8px}
+/* ---- التقرير (A4) ---- */
+.rp-ov{--arrive-blue:#0837C9;--arrive-teal:#00C7E6;--arrive-navy:#0F172A;--arrive-light-blue:#E6F4FF;--g5:#64748B;--line:#E2E8F0;--bad:#EF4444;--ok:#22C55E;--act:#F59E0B;--prog:#3B82F6;
+position:fixed;inset:0;z-index:2000;background:#EEF2F7;overflow:auto;direction:rtl;font-family:'Cairo','Inter',system-ui,sans-serif;color:var(--arrive-navy);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.rp-ov[hidden]{display:none}
+.rp-ov .num{direction:ltr;unicode-bidi:isolate;font-family:'Inter','Cairo',sans-serif;font-variant-numeric:tabular-nums}
+.rp-toolbar{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 24px;background:var(--arrive-blue);color:#fff;box-shadow:0 8px 24px rgba(15,23,42,.18)}
+.rp-toolbar b{font-weight:700}.rp-tb{display:flex;gap:8px}
+.rp-tb button{font:inherit;font-size:13px;font-weight:600;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:5px 14px;cursor:pointer}
+.rp-tb button:hover{background:rgba(255,255,255,.26)}
+.rp-stage{display:flex;flex-direction:column;align-items:center;gap:20px;padding:24px 12px 48px}
+.rp-page{box-sizing:border-box;width:210mm;min-height:297mm;background:#fff;box-shadow:0 4px 18px rgba(15,23,42,.14);padding:14mm 14mm 16mm;display:flex;flex-direction:column;font-size:11px;line-height:1.6}
+.rp-head{display:flex;align-items:center;gap:14px;padding-bottom:8px;border-bottom:2px solid var(--arrive-blue)}
+.rp-tile{background:var(--arrive-blue);border-radius:6px;padding:5px 10px;display:inline-flex}.rp-tile img{height:20px;display:block}
+.rp-sys{font-weight:700;font-size:12px;color:var(--arrive-blue)}
+.rp-ht{margin-inline-start:auto;font-weight:600;font-size:11px;color:var(--g5)}
+.rp-hp{font-size:10.5px;color:var(--g5);padding-inline-start:12px;border-inline-start:1px solid var(--line)}
+.rp-page h2{margin:14px 0 10px;font-size:19px;font-weight:800;padding-inline-start:10px;border-inline-start:4px solid var(--arrive-teal)}
+.rp-page h3{margin:14px 0 6px;font-size:13px;color:var(--arrive-blue);font-weight:700}
+.rp-note{margin:6px 0;font-size:10px;color:var(--g5)}
+.rp-warn{margin:8px 0;border:1px solid var(--act);border-inline-start:4px solid var(--act);border-radius:8px;padding:7px 10px;font-size:10.5px;background:#FEF3C7;color:#B45309}
+.rp-foot{margin-top:auto;padding-top:6px;display:flex;justify-content:space-between;border-top:1px solid var(--line);font-size:9.5px;color:var(--g5)}
+.rp-cover{background:var(--arrive-blue);color:#fff;padding:20mm 18mm}
+.rp-cover img.lg{height:46px;width:auto;align-self:flex-start;display:block}
+.rp-cover .main{margin-top:46mm}
+.rp-cover .kick{display:inline-block;background:var(--arrive-teal);color:var(--arrive-navy);font-weight:700;padding:3px 14px;border-radius:6px;font-size:13px}
+.rp-cover h1{margin:16px 0 14px;font-size:38px;line-height:1.35;font-weight:800;color:#fff}
+.rp-cover .rule{width:70px;height:4px;background:var(--arrive-teal);margin-bottom:24px}
+.rp-cover dl{display:grid;gap:10px;margin:0;max-width:150mm}
+.rp-cover dl div{display:flex;gap:14px;border-bottom:1px solid rgba(255,255,255,.22);padding-bottom:8px}
+.rp-cover dt{width:38mm;color:rgba(255,255,255,.75);font-size:12px}.rp-cover dd{margin:0;font-weight:600;font-size:13px}
+.rp-cover .cf{margin-top:auto;font-size:10px;color:rgba(255,255,255,.8);border-top:1px solid rgba(255,255,255,.3);padding-top:8px}
+.rp-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rp-kpi{border:1px solid var(--line);border-top:4px solid var(--c,var(--arrive-blue));border-radius:10px;padding:10px 12px}
+.rp-kpi .l{font-size:10.5px;color:var(--g5)}.rp-kpi .v{font-size:24px;font-weight:800;line-height:1.3}.rp-kpi .s{font-size:10px;color:var(--g5)}
+.rp-fun{display:flex;height:16px;border-radius:99px;overflow:hidden;background:#F1F5F9;margin:6px 0}
+.rp-fun i{display:block;height:100%}
+.rp-leg{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:10.5px}
+.rp-leg span{display:inline-flex;align-items:center;gap:5px}.rp-leg em{width:9px;height:9px;border-radius:2px;display:inline-block}
+.rp-two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.rp-table{width:100%;border-collapse:collapse;font-size:10.5px;margin:6px 0}
+.rp-table th{background:var(--arrive-blue);color:#fff;text-align:right;padding:6px 8px;font-weight:700}
+.rp-table th.num,.rp-table td.num{text-align:left}
+.rp-table td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.rp-table tbody tr:nth-child(even){background:var(--arrive-light-blue)}
+.rp-table tr{break-inside:avoid}
+.rp-badge{display:inline-block;border-radius:99px;padding:0 9px;font-size:10px;font-weight:600}
+.rp-b-ok{background:#DCFCE7;color:#15803D}.rp-b-act{background:#FEF3C7;color:#B45309}.rp-b-bad{background:#FEE2E2;color:#B91C1C}
+.rp-miss{color:var(--g5);font-size:10px}
+.rp-sign{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}
+.rp-sign div{border-top:1px solid var(--g5);padding-top:6px;font-size:10.5px;color:var(--g5);text-align:center}
+.rp-end{text-align:center;margin-top:18px;font-weight:700;color:var(--arrive-blue)}
+.rp-bars{display:grid;gap:7px}
+.rp-bar{display:grid;grid-template-columns:42% 1fr 30px;gap:8px;align-items:center;font-size:10.5px}
+.rp-bar .tr{height:9px;background:#F1F5F9;border-radius:99px;overflow:hidden;display:block}
+.rp-bar .fl{display:block;height:100%;background:var(--arrive-blue);border-radius:99px}
+.rp-page.fixed{height:297mm;min-height:0;overflow:hidden}
+.rp-body{flex:1;min-height:0;overflow:hidden}
+.rp-blk{margin-bottom:6px}
+.rp-p{margin:0 0 8px;font-size:11.5px;line-height:1.9}
+.rp-scope{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rp-scope div{border:1px solid var(--line);border-inline-start:4px solid var(--arrive-teal);border-radius:8px;padding:8px 10px;background:#F8FAFC;font-size:10.5px}
+.rp-scope b{display:block;color:var(--arrive-blue);margin-bottom:2px}
+body.rp-open{overflow:hidden}
+@page{size:A4;margin:0}
+@media print{
+  body.rp-open{overflow:visible}
+  body.rp-open #mp-root,body.rp-open .mp-modal{display:none!important}
+  .rp-ov{position:static;overflow:visible;background:#fff}
+  .rp-toolbar{display:none}
+  .rp-stage{padding:0;gap:0;display:block}
+  .rp-page{box-shadow:none;width:auto;break-after:page}
+  .rp-page:last-child{break-after:auto}
+}
+</style>
+</head>
+<body>
+
+<div id="mp-root" class="mp" dir="rtl">
+<header class="mp-top"><div class="mp-top-row"><div>
+<img class="mp-logo" alt="ARRIVE" src="assets/arrive-logo.png">
+<span class="mp-eyebrow">MISS PICKUP AUDIT · شركة الشحن والتوصيل</span>
+<h1 class="mp-title" id="mp-title">لوحة رقابة Miss Pickup</h1>
+<p class="mp-take">تقرير <b data-source="kpis" data-field="report_date" data-row="0">—</b>: <b data-source="kpis" data-field="total" data-row="0">—</b> حالة، منها <b data-source="kpis" data-field="no_reply" data-row="0">—</b> لم يرد عليها الفرع بعد، و<b data-source="kpis" data-field="closed" data-row="0">—</b> مغلقة.</p>
+<span class="mp-chip mp-conn" id="mp-conn" data-state="local"><i></i><span id="mp-conn-l">—</span></span>
+<span class="mp-chip" style="margin-inline-start:8px">آخر تحديث: <b id="mp-upd" style="background:none;padding:0">—</b></span>
+<div class="mp-actions"><button class="mp-btn" id="mp-refresh" type="button">↻ تحديث</button><button class="mp-btn" id="mp-theme" type="button">الوضع الداكن</button><button class="mp-btn" id="mp-csv" type="button">⬇ تصدير CSV</button><button class="mp-btn" id="mp-report" type="button">📄 تقرير A4</button><button class="mp-btn" id="mp-print" type="button">طباعة</button><button class="mp-btn" id="mp-settings" type="button">⚙ إعدادات</button></div></div>
+<div class="mp-meta"><div><b data-source="kpis" data-field="total" data-row="0">—</b><span>إجمالي الحالات</span></div><div><b data-source="kpis" data-field="no_reply" data-row="0">—</b><span>لم يرد الفرع</span></div><div><b data-source="kpis" data-field="closed" data-row="0">—</b><span>مغلقة</span></div></div></div></header>
+<div class="mp-body">
+<div class="mp-warn">تنبيه: عمود «الفرع المخطئ» معروض كما هو في الشيت، وغير مؤكد: لم تتم مراجعة الأوديت لأي حالة، ويبدو أنه مبني على نص حالة First Mile. لا يُعتمد لتقييم أداء الفروع قبل التحقق. تاريخ إنشاء الحالة غير متوفر في المصدر، لذلك عمر الحالة غير محسوب.</div>
+<div class="mp-sec"><h2><span class="tag">Exec</span> الملخص التنفيذي</h2><span class="sub">مؤشرات محسوبة آليًا من سجل الحالات كما هو</span></div>
+<p class="mp-hint">اضغط على أي بطاقة لعرض حالاتها في سجل الحالات.</p>
+<section class="mp-tiles" id="kpi-tiles">
+<button class="mp-stub click" type="button" data-card="all" style="--ac:var(--arrive-blue)"><span>إجمالي الحالات</span><b data-source="kpis" data-field="total" data-row="0">—</b><small>كل الحالات في السجل</small></button>
+<button class="mp-stub click" type="button" data-card="no_reply" style="--ac:var(--st-bad)"><span>لم يرد الفرع</span><b data-source="kpis" data-field="no_reply" data-row="0">—</b><small><b data-pct="no_reply">—</b> من الإجمالي</small></button>
+<button class="mp-stub click" type="button" data-card="awaiting" style="--ac:var(--st-prog)"><span>بانتظار الأوديت</span><b data-source="kpis" data-field="awaiting" data-row="0">—</b><small><b data-pct="awaiting">—</b> من الإجمالي</small></button>
+<button class="mp-stub click" type="button" data-card="action" style="--ac:var(--st-act)"><span>تتطلب إجراءً</span><b data-source="kpis" data-field="action" data-row="0">—</b><small>استكمال رد أو إجراء تصحيحي</small></button>
+<button class="mp-stub click" type="button" data-card="closed" style="--ac:var(--st-ok)"><span>حالات مغلقة</span><b data-source="kpis" data-field="closed" data-row="0">—</b><small><b data-pct="closed">—</b> من الإجمالي</small></button>
+<button class="mp-stub click" type="button" data-card="unassigned" style="--ac:var(--st-off)"><span>الفرع المسؤول غير محدد</span><b data-source="kpis" data-field="unassigned" data-row="0">—</b><small><b data-pct="unassigned">—</b> من الإجمالي</small></button>
+<div class="mp-stub" style="--ac:var(--arrive-teal-600)"><span>نسبة الاستجابة</span><b data-source="kpis" data-field="respond_rate" data-row="0">—</b><small>حالات ظهر لها رد ÷ الإجمالي</small></div>
+</section>
+<section class="mp-card"><h3>مسار المتابعة</h3><p>توزيع كل الحالات على مراحل المتابعة المعتمدة في الشيت</p><div class="mp-funnel" id="mp-funnel"></div><div class="mp-legend" id="mp-legend"></div></section>
+<div class="mp-sec"><h2><span class="tag">Status</span> حالة المتابعة ونوع الحالة</h2><span class="sub">توزيع الحالات حسب أعمدة الشيت</span></div>
+<section class="mp-grid" id="status-section">
+<div class="mp-card"><h3>حالة المتابعة</h3><p>العمود O في سجل الحالات</p><table class="mp-drill" id="t-followup" data-source="by_followup" data-row-key="label"><thead><tr><th data-field="label">الحالة</th><th data-field="n">العدد</th><th data-field="share">النسبة</th></tr></thead><tbody></tbody></table></div>
+<div class="mp-card"><h3>نوع الحالة</h3><p>المصدر الذي رُحّلت منه الحالة</p><table class="mp-drill" id="t-type" data-source="by_type" data-row-key="label"><thead><tr><th data-field="label">النوع</th><th data-field="n">العدد</th><th data-field="share">النسبة</th></tr></thead><tbody></tbody></table></div>
+</section>
+<div class="mp-sec"><h2><span class="tag">Branch</span> الفروع</h2><span class="sub">غير مؤكد قبل مراجعة الأوديت</span></div>
+<section class="mp-card" id="card-branch"><h3>الفرع المخطئ (غير مؤكد)</h3><p>كما هو في العمود J. «لا يوجد مخطئ» هي القيمة الموجودة في الشيت وليست نتيجة تحقق. أسماء الفروع كما كُتبت في السجل.</p>
+<table class="mp-drill" id="t-branch" data-source="by_branch" data-row-key="label"><thead><tr><th data-field="label">الفرع</th><th data-field="n">الحالات</th><th data-field="pickup">تم استلام بيك اب</th><th data-field="requests">طلبات العملاء</th><th data-field="share">النسبة</th></tr></thead><tbody></tbody></table></section>
+<div class="mp-sec"><h2><span class="tag">Reasons</span> الحالات والأسباب</h2><span class="sub">كما كُتبت في الشيت</span></div>
+<section class="mp-grid" id="reasons-section">
+<div class="mp-card"><h3>حالة العميل / الطلب</h3><p>العمود F</p><table class="mp-drill" id="t-status" data-source="by_status" data-row-key="label"><thead><tr><th data-field="label">الحالة</th><th data-field="n">العدد</th><th data-field="share">النسبة</th></tr></thead><tbody></tbody></table></div>
+<div class="mp-card"><h3>حالة First Mile</h3><p>العمود H، كما كُتبت في الشيت</p><table class="mp-drill" id="t-firstmile" data-source="by_firstmile" data-row-key="label"><thead><tr><th data-field="label">الحالة</th><th data-field="n">العدد</th><th data-field="share">النسبة</th></tr></thead><tbody></tbody></table></div>
+</section>
+<div class="mp-sec"><h2><span class="tag">Quality</span> جودة البيانات</h2><span class="sub">فحوصات آلية على سجل الحالات، تظهر أيضًا في التقرير</span></div>
+<section class="mp-card"><table id="t-quality"><thead><tr><th>الفحص</th><th>العدد</th><th>النسبة</th><th>الحالة</th></tr></thead><tbody></tbody></table></section>
+<div class="mp-sec"><h2><span class="tag">Log</span> سجل الحالات</h2><span class="sub">الفلاتر والبحث تعمل على هذا الجدول فقط</span></div>
+<section class="mp-card" id="card-cases">
+<div class="mp-filters">
+<div class="mp-fg"><label>نوع الحالة</label><select class="mp-type" aria-label="نوع الحالة"></select></div>
+<div class="mp-fg"><label>الفرع المخطئ</label><select class="mp-branch" aria-label="الفرع المخطئ"></select></div>
+<div class="mp-fg"><label>حالة المتابعة</label><select class="mp-fu" aria-label="حالة المتابعة"></select></div>
+<div class="mp-fg grow"><label>بحث (رقم الحالة، العميل، الحالة)</label><input class="mp-q" type="search" placeholder="اكتب للبحث…" aria-label="بحث"></div>
+<button class="mp-fchip" id="mp-cardchip" type="button" hidden></button>
+<div class="mp-count"><b id="mp-n">0</b> نتيجة</div>
+<button class="mp-reset" type="button">إعادة التصفية</button></div>
+<div class="mp-scroll"><table id="t-cases" data-source="cases" data-row-key="id"><thead><tr>
+<th data-field="id">رقم الحالة</th><th data-field="type">نوع الحالة</th><th data-field="name">اسم العميل</th><th data-field="k">حالة المتابعة</th><th data-field="f">حالة العميل / الطلب</th><th data-field="g">حالة الاستعلام</th><th data-field="h">حالة First Mile</th><th data-field="j">الفرع المخطئ (غير مؤكد)</th>
+</tr></thead><tbody></tbody></table></div>
+<p class="mp-empty" hidden>لا توجد حالات مطابقة للفلاتر.</p></section>
+</div></div>
+
+<div class="mp-modal" id="mp-modal"><div><h3>إعدادات مصدر البيانات</h3>
+<p style="margin:0;font-size:12.5px;color:var(--color-fg-muted)">رابط Google Apps Script (Web App). يُحفظ على هذا الجهاز فقط. اتركه فارغًا لاستخدام ملف miss_pickup_cases.json.</p>
+<input id="mp-api" type="url" placeholder="https://script.google.com/macros/s/XXXXXXXX/exec">
+<div class="row"><button class="mp-reset" id="mp-cancel" type="button">إلغاء</button><button class="mp-reset solid" id="mp-save" type="button">حفظ والاتصال</button></div></div></div>
+
+<script>
+/* ---- Mini runtime: يحاكي dash.calc / dash.data / dash.params بدون أي تغيير في منطق الحساب ---- */
+const dash = (() => {
+  const calcs = {}, store = { cases: { status: 'loading', data: [] } }, listeners = [];
+  let params = {};
+  const run = () => {
+    const c = store.cases;
+    Object.keys(calcs).forEach((id) => {
+      store[id] = c.status === 'ok' ? { status: 'ok', data: calcs[id].fn(c.data) } : { status: c.status, data: [] };
+    });
+    listeners.forEach((f) => f());
+  };
+  return {
+    colors: ['#0837C9', '#00C7E6', '#0F172A', '#94A3B8'],
+    calc: (id, o) => { calcs[id] = o; },
+    data: (id) => store[id] || { status: 'loading', data: [] },
+    params: () => params,
+    setParams: (p) => { params = { ...params, ...p }; listeners.forEach((f) => f()); },
+    onData: (f) => { listeners.push(f); f(); },
+    _set: (status, rows) => { store.cases = { status, data: rows || [] }; run(); }
+  };
+})();
+const d3 = {
+  format: (f) => (f === ',' ? (v) => Number(v).toLocaleString('en') : (v) => (v * 100).toFixed(1) + '%'),
+  max: (a, fn) => a.reduce((m, x) => Math.max(m, fn(x)), -Infinity)
+};
+
+
+/* ---- v2: تعريفات مشتركة بين اللوحة والتقرير ---- */
+const FU_AWAIT = ['تم الرد - بانتظار الأوديت', 'تحت مراجعة الأوديت'];
+const FU_ACTION = ['مطلوب استكمال الرد', 'إجراء تصحيحي مطلوب'];
+const CARD = {
+  no_reply: { label: 'لم يرد الفرع', test: (r) => r.k === 'لم يرد الفرع' },
+  awaiting: { label: 'بانتظار الأوديت', test: (r) => FU_AWAIT.includes(r.k) },
+  action: { label: 'تتطلب إجراءً', test: (r) => FU_ACTION.includes(r.k) },
+  closed: { label: 'مغلقة', test: (r) => r.k === 'مغلقة' },
+  unassigned: { label: 'الفرع المسؤول غير محدد', test: (r) => r.i === 'غير محدد' }
+};
+const FU_COLORS = { 'لم يرد الفرع': '#EF4444', 'تم الرد - بانتظار الأوديت': '#3B82F6', 'تحت مراجعة الأوديت': '#93C5FD', 'مطلوب استكمال الرد': '#F59E0B', 'إجراء تصحيحي مطلوب': '#D97706', 'مغلقة': '#22C55E', 'غير مسجل': '#94A3B8' };
+const QCHECKS = [
+  { key: 'dup_ids', label: 'تكرار رقم الحالة', note: '' },
+  { key: 'no_name', label: 'اسم العميل فارغ', note: '' },
+  { key: 'no_followup', label: 'حالة المتابعة فارغة', note: '' },
+  { key: 'unassigned', label: 'الفرع المسؤول عن الرد «غير محدد»', note: '' },
+  { key: 'no_created', label: 'تاريخ إنشاء الحالة غير متوفر', note: 'عمر الحالة غير محسوب' },
+  { key: 'audit_pending', label: 'مراجعة الأوديت: «لم تتم المراجعة»', note: '' },
+  { key: 'no_wrong', label: 'الفرع المخطئ = «لا يوجد مخطئ»', note: 'قيمة من الشيت وليست نتيجة تحقق' }
+];
+const esc = (v) => String(v == null ? '' : v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const pctOf = (n, t) => (t ? (n / t * 100).toFixed(1) + '%' : '—');
+function funnelParts(rows, total) {
+  const parts = rows.filter((r) => r.n > 0).map((r) => ({ label: r.label, n: r.n, color: FU_COLORS[r.label] || '#94A3B8' }));
+  const blank = total - rows.reduce((a, r) => a + r.n, 0);
+  if (blank > 0) parts.push({ label: 'غير مسجل', n: blank, color: FU_COLORS['غير مسجل'] });
+  return parts;
+}
+
+(function () {
+  dash.calc('kpis', {
+    inputs: ['cases'], title: 'مؤشرات اللوحة',
+    description: 'عدّ الحالات حسب حالة المتابعة والفرع المسؤول وتاريخ الإنشاء',
+    fn: (cases) => {
+      const n = (f) => cases.filter(f).length;
+      return [{
+        report_date: cases.length ? cases[0].d : '',
+        total: cases.length,
+        no_reply: n((r) => r.k === 'لم يرد الفرع'),
+        awaiting: n(CARD.awaiting.test),
+        closed: n((r) => r.k === 'مغلقة'),
+        unassigned: n((r) => r.i === 'غير محدد'),
+        has_date: n((r) => !!r.c),
+        action: n(CARD.action.test),
+        responded: n((r) => !!r.k && r.k !== 'لم يرد الفرع'),
+        respond_rate: cases.length ? n((r) => !!r.k && r.k !== 'لم يرد الفرع') / cases.length : 0
+      }];
+    }
+  });
+  dash.calc('by_followup', {
+    inputs: ['cases'], title: 'حالة المتابعة', description: 'عدد الحالات لكل حالة متابعة معتمدة في قائمة الشيت',
+    fn: (cases) => ['لم يرد الفرع', 'تم الرد - بانتظار الأوديت', 'تحت مراجعة الأوديت', 'مطلوب استكمال الرد', 'إجراء تصحيحي مطلوب', 'مغلقة'].map((label) => {
+      const n = cases.filter((r) => r.k === label).length;
+      return { label, n, share: cases.length ? n / cases.length : 0 };
+    })
+  });
+  dash.calc('by_type', {
+    inputs: ['cases'], title: 'نوع الحالة', description: 'عدد الحالات لكل نوع',
+    fn: (cases) => { const m = new Map(); cases.forEach((r) => m.set(r.type, (m.get(r.type) || 0) + 1)); return [...m].map(([label, n]) => ({ label, n, share: n / cases.length })).sort((a, b) => b.n - a.n); }
+  });
+  dash.calc('by_status', {
+    inputs: ['cases'], title: 'حالة العميل أو الطلب', description: 'عدد الحالات لكل حالة عميل أو طلب',
+    fn: (cases) => { const m = new Map(); cases.forEach((r) => m.set(r.f, (m.get(r.f) || 0) + 1)); return [...m].map(([label, n]) => ({ label: label || 'غير مسجل', n, share: n / cases.length })).sort((a, b) => b.n - a.n); }
+  });
+  dash.calc('by_firstmile', {
+    inputs: ['cases'], title: 'حالة First Mile', description: 'عدد الحالات لكل نص في حالة First Mile',
+    fn: (cases) => { const m = new Map(); cases.forEach((r) => m.set(r.h, (m.get(r.h) || 0) + 1)); return [...m].map(([label, n]) => ({ label: label || 'غير مسجل', n, share: n / cases.length })).sort((a, b) => b.n - a.n); }
+  });
+  dash.calc('by_branch', {
+    inputs: ['cases'], title: 'الفرع المخطئ حسب الشيت', description: 'عدد الحالات لكل قيمة في عمود الفرع المخطئ، مقسومة حسب النوع',
+    fn: (cases) => {
+      const m = new Map();
+      cases.forEach((r) => {
+        const o = m.get(r.j) || { label: r.j || 'غير مسجل', n: 0, pickup: 0, requests: 0 };
+        o.n += 1;
+        if (r.type === 'تم استلام بيك اب') o.pickup += 1; else o.requests += 1;
+        m.set(r.j, o);
+      });
+      return [...m.values()].map((o) => ({ ...o, share: o.n / cases.length })).sort((a, b) => b.n - a.n);
+    }
+  });
+
+  dash.calc('quality', {
+    inputs: ['cases'], title: 'جودة البيانات', description: 'فحوصات آلية على سجل الحالات',
+    fn: (cases) => {
+      const n = (f) => cases.filter(f).length;
+      return [{
+        total: cases.length, dup_ids: cases.length - new Set(cases.map((r) => r.id)).size,
+        no_name: n((r) => !r.name), no_followup: n((r) => !r.k), unassigned: n((r) => r.i === 'غير محدد'),
+        no_created: n((r) => !r.c), audit_pending: n((r) => r.m === 'لم تتم المراجعة'), no_wrong: n((r) => r.j === 'لا يوجد مخطئ')
+      }];
+    }
+  });
+
+  const fmtN = d3.format(','), fmtP = d3.format('.1%');
+  const show = (v, c) => (c === 'share' ? fmtP(v) : typeof v === 'number' ? fmtN(v) : v);
+
+  const BADGE = { 'لم يرد الفرع': 'b-bad', 'تم الرد - بانتظار الأوديت': 'b-prog', 'تحت مراجعة الأوديت': 'b-prog', 'مطلوب استكمال الرد': 'b-act', 'إجراء تصحيحي مطلوب': 'b-act', 'مغلقة': 'b-ok' };
+  function badge(v) { const s = document.createElement('span'); s.className = 'mp-badge ' + (BADGE[v] || 'b-off'); s.textContent = v; return s; }
+
+  function fillTable(sel, id, cols) {
+    const tb = document.querySelector(sel + ' tbody');
+    const g = dash.data(id);
+    if (g.status !== 'ok') { tb.replaceChildren(); return; }
+    const max = d3.max(g.data, (d) => d.n) || 1;
+    tb.replaceChildren(...g.data.map((row) => {
+      const tr = document.createElement('tr');
+      tr.dataset.key = row.label;
+      cols.forEach((c) => {
+        const td = document.createElement('td');
+        if (id === 'by_followup' && c === 'label') td.appendChild(badge(row[c])); else td.textContent = show(row[c], c);
+        if (c === 'n' || c === 'share') td.classList.add(c === 'n' ? 'n' : 'sh');
+        if (c === 'n') {
+          td.classList.add('mp-bar');
+          td.style.setProperty('--w', (row.n / max * 100) + '%');
+          td.style.setProperty('--c', dash.colors[0]);
+        }
+        tr.appendChild(td);
+      });
+      return tr;
+    }));
+  }
+
+  // cases table state
+  const selT = document.querySelector('.mp-type'), selB = document.querySelector('.mp-branch'), selF = document.querySelector('.mp-fu');
+  const countEl = document.getElementById('mp-n');
+  const qIn = document.querySelector('.mp-q'), resetBtn = document.querySelector('.mp-reset');
+  const emptyMsg = document.querySelector('.mp-empty'), chipEl = document.getElementById('mp-cardchip');
+  const heads = [...document.querySelectorAll('#t-cases th')];
+  const cols = ['id', 'type', 'name', 'k', 'f', 'g', 'h', 'j'];
+  let search = '', sort = { col: 'id', dir: 1 };
+  const norm = (s) => String(s == null ? '' : s).toLowerCase()
+    .replace(/[ً-ْـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
+
+  selT.addEventListener('change', () => dash.setParams({ type: selT.value || null }));
+  selB.addEventListener('change', () => dash.setParams({ branch: selB.value || null }));
+  selF.addEventListener('change', () => dash.setParams({ fu: selF.value || null }));
+  qIn.addEventListener('input', () => { search = norm(qIn.value.trim()); drawCases(); });
+  resetBtn.addEventListener('click', () => { qIn.value = ''; search = ''; dash.setParams({ type: null, branch: null, fu: null, pred: null }); drawCases(); });
+  chipEl.addEventListener('click', () => dash.setParams({ pred: null }));
+  const toLog = () => document.getElementById('card-cases').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.querySelectorAll('.mp-stub[data-card]').forEach((el) => el.addEventListener('click', () => {
+    const k = el.dataset.card;
+    qIn.value = ''; search = '';
+    dash.setParams({ type: null, branch: null, fu: null, pred: k === 'all' ? null : { key: k, label: CARD[k].label, test: CARD[k].test } });
+    toLog();
+  }));
+  // drill-down من الجداول إلى السجل
+  const DRILL = { 't-followup': (v) => ({ fu: v }), 't-type': (v) => ({ type: v }), 't-branch': (v) => (v === 'غير مسجل' ? { pred: { key: 'x', label: 'الفرع المخطئ: غير مسجل', test: (r) => !r.j } } : { branch: v }),
+    't-status': (v) => ({ pred: { key: 'x', label: 'حالة العميل: ' + v, test: (r) => (r.f || 'غير مسجل') === v } }),
+    't-firstmile': (v) => ({ pred: { key: 'x', label: 'First Mile: ' + v, test: (r) => (r.h || 'غير مسجل') === v } }) };
+  Object.keys(DRILL).forEach((id) => document.getElementById(id).addEventListener('click', (e) => {
+    const tr = e.target.closest('tbody tr'); if (!tr) return;
+    qIn.value = ''; search = '';
+    dash.setParams(Object.assign({ type: null, branch: null, fu: null, pred: null }, DRILL[id](tr.dataset.key)));
+    toLog();
+  }));
+  heads.forEach((th) => th.addEventListener('click', () => {
+    const c = th.dataset.field;
+    sort = { col: c, dir: sort.col === c ? -sort.dir : 1 };
+    drawCases();
+  }));
+
+  function setOptions(sel, all, values, current) {
+    const want = [''].concat(values);
+    if (sel.options.length !== want.length) {
+      sel.replaceChildren(new Option(all, ''), ...values.map((v) => new Option(v, v)));
+    }
+    sel.value = current || '';
+  }
+
+  function drawCases() {
+    const g = dash.data('cases');
+    const tb = document.querySelector('#t-cases tbody');
+    if (g.status !== 'ok') { tb.replaceChildren(); emptyMsg.hidden = true; countEl.textContent = '—'; return; }
+    const p = dash.params();
+    setOptions(selT, 'كل الأنواع', [...new Set(g.data.map((r) => r.type))], p.type);
+    setOptions(selB, 'كل الفروع', [...new Set(g.data.map((r) => r.j))].sort((a, b) => a.localeCompare(b, 'ar')), p.branch);
+    setOptions(selF, 'كل الحالات', [...new Set(g.data.map((r) => r.k))].filter(Boolean).sort((a, b) => a.localeCompare(b, 'ar')), p.fu);
+    let rows = g.data.filter((r) =>
+      (!p.type || r.type === p.type) && (!p.branch || r.j === p.branch) && (!p.fu || r.k === p.fu) && (!p.pred || p.pred.test(r)) &&
+      (!search || cols.some((c) => norm(r[c]).includes(search))));
+    rows = rows.slice().sort((a, b) => String(a[sort.col] || '').localeCompare(String(b[sort.col] || ''), 'ar', { numeric: true }) * sort.dir);
+    heads.forEach((th) => th.setAttribute('aria-sort', th.dataset.field === sort.col ? (sort.dir > 0 ? 'ascending' : 'descending') : 'none'));
+    tb.replaceChildren(...rows.map((r) => {
+      const tr = document.createElement('tr');
+      tr.dataset.key = r.id;
+      cols.forEach((c) => { const td = document.createElement('td'); if (c === 'id') td.className = 'id'; if (c === 'k' && r.k) td.appendChild(badge(r.k)); else td.textContent = r[c] == null ? '' : r[c]; tr.appendChild(td); });
+      return tr;
+    }));
+    emptyMsg.hidden = rows.length > 0;
+    countEl.textContent = fmtN(rows.length);
+    chipEl.hidden = !p.pred; if (p.pred) chipEl.textContent = 'فلتر: ' + p.pred.label + ' ✕';
+    document.querySelectorAll('.mp-stub[data-card]').forEach((el) => el.classList.toggle('on', !!p.pred && p.pred.key === el.dataset.card));
+  }
+
+  dash.onData(() => {
+    const k = dash.data('kpis');
+    const row = k.status === 'ok' && k.data.length ? k.data[0] : null;
+    document.querySelectorAll('#mp-root [data-source="kpis"][data-field]').forEach((el) => {
+      const v = row ? row[el.dataset.field] : null;
+      el.textContent = v == null ? '—' : (el.dataset.field.endsWith('_rate') ? fmtP(v) : show(v, ''));
+    });
+    document.querySelectorAll('[data-pct]').forEach((el) => { el.textContent = row ? pctOf(row[el.dataset.pct], row.total) : '—'; });
+    const fl = dash.data('by_followup');
+    if (row && fl.status === 'ok') {
+      const parts = funnelParts(fl.data, row.total);
+      document.getElementById('mp-funnel').innerHTML = parts.map((x) => '<i title="' + esc(x.label) + ': ' + x.n + '" style="width:' + (x.n / row.total * 100) + '%;background:' + x.color + '"></i>').join('');
+      document.getElementById('mp-legend').innerHTML = parts.map((x) => '<span><em style="background:' + x.color + '"></em>' + esc(x.label) + ' <b>' + fmtN(x.n) + '</b> (' + pctOf(x.n, row.total) + ')</span>').join('');
+    }
+    const q = dash.data('quality'), qrow = q.status === 'ok' && q.data.length ? q.data[0] : null;
+    document.querySelector('#t-quality tbody').replaceChildren(...(qrow ? QCHECKS.map((c) => {
+      const tr = document.createElement('tr'), v = qrow[c.key], bad = v > 0;
+      [c.label + (c.note && bad ? ' — ' + c.note : ''), fmtN(v), pctOf(v, qrow.total)].forEach((t, i) => { const td = document.createElement('td'); td.textContent = t; if (i) td.className = 'n'; tr.appendChild(td); });
+      const td = document.createElement('td'); td.appendChild(Object.assign(document.createElement('span'), { className: 'mp-badge ' + (bad ? 'b-act' : 'b-ok'), textContent: bad ? 'يحتاج مراجعة' : 'سليم' })); tr.appendChild(td);
+      return tr;
+    }) : []));
+    fillTable('#t-followup', 'by_followup', ['label', 'n', 'share']);
+    fillTable('#t-type', 'by_type', ['label', 'n', 'share']);
+    fillTable('#t-branch', 'by_branch', ['label', 'n', 'pickup', 'requests', 'share']);
+    fillTable('#t-status', 'by_status', ['label', 'n', 'share']);
+    fillTable('#t-firstmile', 'by_firstmile', ['label', 'n', 'share']);
+    drawCases();
+  });
+})();
+
+
+/* ---- Data loading: Apps Script API أولًا، ثم الملف المحلي ---- */
+const API_KEY = 'arrive_misspickup_api_url', THEME_KEY = 'arrive_misspickup_theme';
+const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbwC8bW9eojQcO4Vvu7O3kOXLF5YaV_K3D6Jus8B_uDK_oepCkS6Wiqr5dV2cZMQBt7-/exec'; // Apps Script Web app (live)
+const LOCAL_FILE = 'miss_pickup_cases.json';
+const $ = (id) => document.getElementById(id);
+const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const fmtDT = (d) => d.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
+const asRows = (j) => (Array.isArray(j) ? j : j && Array.isArray(j.rows) ? j.rows : null);
+function setConn(state, label, when) { $('mp-conn').dataset.state = state; $('mp-conn-l').textContent = label; if (when) $('mp-upd').textContent = when; }
+async function getJson(url) {
+  const c = new AbortController(), to = setTimeout(() => c.abort(), 15000);
+  try { const r = await fetch(url, { cache: 'no-store', signal: c.signal }); if (!r.ok) throw new Error(r.status); return await r.json(); }
+  finally { clearTimeout(to); }
+}
+async function load() {
+  const api = lsGet(API_KEY) || DEFAULT_API_URL;
+  if (api) {
+    try {
+      const j = await getJson(api), rows = asRows(j);
+      if (!rows) throw new Error(j && j.error ? j.error : 'الرد ليس JSON بالشكل المتوقع');
+      dash._set('ok', rows); setConn('live', 'متصل بالشيت', fmtDT(new Date())); return;
+    } catch (e) { setConn('error', 'تعذّر الاتصال بالشيت (' + (e && e.name === 'AbortError' ? 'انتهت المهلة' : (e && e.message) || 'خطأ') + ') — عرض الملف المحلي'); console.warn('Sheet API error:', e); }
+  }
+  try {
+    const rows = asRows(await getJson(LOCAL_FILE));
+    if (!rows) throw new Error('bad shape');
+    dash._set('ok', rows);
+    if (!api) setConn('local', 'ملف محلي', '');
+  } catch (e) { dash._set('error', []); setConn('error', 'لا توجد بيانات'); }
+}
+function toCsv() {
+  const rows = dash.data('cases').data, cols = ['id','type','name','k','f','g','h','i','j','m','c','d'];
+  const q = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const blob = new Blob(['\ufeff' + [cols.join(',')].concat(rows.map((r) => cols.map((c) => q(r[c])).join(','))).join('\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'miss_pickup_cases.csv'; a.click();
+}
+function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); $('mp-theme').textContent = t === 'dark' ? 'الوضع الفاتح' : 'الوضع الداكن'; lsSet(THEME_KEY, t); }
+applyTheme(lsGet(THEME_KEY) || 'light');
+$('mp-theme').onclick = () => applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+$('mp-refresh').onclick = load; $('mp-csv').onclick = toCsv; $('mp-print').onclick = () => window.print();
+$('mp-settings').onclick = () => { $('mp-api').value = lsGet(API_KEY) || ''; $('mp-modal').classList.add('open'); };
+$('mp-cancel').onclick = () => $('mp-modal').classList.remove('open');
+$('mp-save').onclick = () => { lsSet(API_KEY, $('mp-api').value.trim()); $('mp-modal').classList.remove('open'); load(); };
+load();
+setInterval(load, 5 * 60 * 1000);
+
+</script>
+
+<script>
+/* ---- التقرير (A4): يستخدم نفس دوال الحساب في اللوحة (dash.data) بدون أي حساب جديد للمؤشرات ---- */
+(function () {
+  const MISSING = 'غير محدد بالمصدر';
+  const N = (v) => (v == null || Number.isNaN(v) ? '—' : Number(v).toLocaleString('en-US'));
+  const head = () => '<header class="rp-head"><span class="rp-tile"><img src="assets/arrive-logo.png" alt="ARRIVE"></span><span class="rp-sys">إدارة المراجعة التشغيلية</span><span class="rp-ht">تقرير رقابة Miss Pickup</span><span class="rp-hp num">' + esc(ctx.period) + '</span></header>';
+  const sec = (title) => '<h2>' + esc(title) + '</h2>';
+  const foot = () => '<footer class="rp-foot"><span>ARRIVE · إدارة المراجعة التشغيلية</span><span class="rp-pn num"></span></footer>';
+  const page = (inner, cls) => '<section class="rp-page ' + (cls || '') + '">' + inner + '</section>';
+  const table = (cols, rows) => '<table class="rp-table"><thead><tr>' + cols.map((c) => '<th' + (c.num ? ' class="num"' : '') + (c.w ? ' style="width:' + c.w + '"' : '') + '>' + c.t + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table>';
+  let ctx = {};
+  const ltr = (t) => '<bdi dir="ltr">' + t + '</bdi>';
+  const bars = (rows, T, lim, color) => '<div class="rp-bars">' + rows.slice(0, lim).map((r) => '<div class="rp-bar"><span>' + esc(r.label) + '</span><span class="tr"><span class="fl" style="width:' + Math.max(3, r.n / rows[0].n * 100) + '%;' + (color ? 'background:' + color : '') + '"></span></span><b class="num">' + N(r.n) + '</b></div>').join('') + '</div>';
+
+  function findings(K, Q) {
+    const T = K.total, f = [];
+    const add = (t, n, i, a) => { if (n > 0) f.push({ n, t, e: ltr(N(n)) + ' من ' + ltr(N(T)) + ' (' + ltr(pctOf(n, T)) + ')', i, a }); };
+    add('حالات Miss Pickup لم يرد عليها الفرع', K.no_reply, 'حالات مفتوحة دون رد موثّق من الفرع، مما يؤخر التحقق والإغلاق', 'متابعة الفروع المسؤولة للرد في الشيت ضمن مهلة تُعتمد، وتصعيد الحالات غير المردود عليها');
+    add('حالات تتطلب استكمال رد أو إجراءً تصحيحيًا', K.action, 'الرد الحالي غير كافٍ لإغلاق الحالة', 'متابعة استكمال الرد أو تنفيذ الإجراء التصحيحي وتوثيقه');
+    add('حالات بانتظار الأوديت أو تحت المراجعة', K.awaiting, 'تراكم حالات لدى الأوديت يؤخر الإغلاق', 'تحديد مهلة لمراجعة الأوديت وجدولة المراجعة');
+    add('الفرع المسؤول عن الرد غير محدد', Q.unassigned, 'لا يمكن تتبع المسؤولية عن الرد', 'تحديد الفرع المسؤول لكل حالة عند التسجيل');
+    add('عمود الفرع المخطئ غير مؤكد', Q.no_wrong, 'القيمة من الشيت وليست نتيجة تحقق، فلا تُعتمد في تقييم الفروع', 'اعتماد مراجعة الأوديت قبل استخدام العمود في التقييم');
+    add('تاريخ إنشاء الحالة غير متوفر', Q.no_created, 'لا يمكن احتساب عمر الحالة (Case Age)', 'إضافة تاريخ إنشاء الحالة إلى المصدر');
+    add('تكرار رقم الحالة', Q.dup_ids, 'احتمال ازدواج في العد', 'مراجعة السجلات المكررة وتصحيحها');
+    return f;
+  }
+
+  function build() {
+    const K = dash.data('kpis').data[0], Q = dash.data('quality').data[0];
+    const fu = dash.data('by_followup').data, ty = dash.data('by_type').data, st = dash.data('by_status').data, fm = dash.data('by_firstmile').data, br = dash.data('by_branch').data;
+    const cases = dash.data('cases').data, T = K.total;
+    const dates = [...new Set(cases.map((r) => r.d).filter(Boolean))];
+    ctx.period = dates.length ? dates.join(' — ') : MISSING;
+    const conn = document.getElementById('mp-conn').dataset.state;
+    const src = conn === 'live' ? 'سجل الحالات (Google Sheet) — اتصال مباشر' : 'نسخة محلية من السجل (miss_pickup_cases.json)';
+    const kp = (l, v, s0, c) => '<div class="rp-kpi" style="--c:' + c + '"><div class="l">' + l + '</div><div class="v num">' + v + '</div><div class="s">' + s0 + '</div></div>';
+    const parts = funnelParts(fu, T);
+    const dist = (rows, h, lim) => {
+      const top = rows.slice(0, lim || 8), rest = rows.slice(lim || 8).reduce((a, r) => a + r.n, 0);
+      return '<h3>' + h + '</h3>' + table([{ t: 'البند' }, { t: 'العدد', num: 1, w: '18mm' }, { t: 'النسبة', num: 1, w: '20mm' }],
+        top.map((r) => '<tr><td>' + esc(r.label) + '</td><td class="num">' + N(r.n) + '</td><td class="num">' + pctOf(r.n, T) + '</td></tr>').join('') + (rest ? '<tr><td>أخرى</td><td class="num">' + N(rest) + '</td><td class="num">' + pctOf(rest, T) + '</td></tr>' : ''));
+    };
+    const F = findings(K, Q).sort((a, b) => b.n - a.n);
+    const cover = page('<img class="lg" src="assets/arrive-logo.png" alt="ARRIVE"><div class="main"><div class="kick">إدارة المراجعة التشغيلية</div><h1>تقرير رقابة<br>Miss Pickup</h1><div class="rule"></div>' +
+      '<dl><div><dt>تاريخ التقرير</dt><dd class="num">' + esc(ctx.period) + '</dd></div><div><dt>إجمالي الحالات</dt><dd class="num">' + N(T) + '</dd></div><div><dt>مصدر البيانات</dt><dd>' + src + '</dd></div><div><dt>تاريخ الإعداد</dt><dd class="num">' + new Date().toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) + '</dd></div></dl></div>' +
+      '<div class="cf">جميع الأرقام محسوبة آليًا من سجل الحالات كما هو، دون تعديل أو افتراض.</div>', 'rp-cover');
+    const B = [];
+    B.push(sec('الهدف من التقرير') +
+      '<p class="rp-p">يهدف هذا التقرير إلى متابعة حالات Miss Pickup المسجلة في سجل الحالات، وبيان موقف الرد والمراجعة والإغلاق لكل حالة، وإبراز الحالات التي لم يرد عليها الفرع أو التي تتطلب إجراءً، وفحص جودة بيانات السجل، وتقديم إجراءات مقترحة للإدارة.</p>' +
+      '<div class="rp-scope"><div><b>النطاق</b><span>كل الحالات في سجل الحالات بتاريخ التقرير <span class="num">' + esc(ctx.period) + '</span> (<span class="num">' + N(T) + '</span> حالة).</span></div>' +
+      '<div><b>حدود التقرير</b><span>لا يقيّم أداء الفروع لأن عمود «الفرع المخطئ» غير مؤكد، ولا يحسب عمر الحالة لغياب تاريخ الإنشاء.</span></div></div>');
+    B.push(sec('الملخص التنفيذي') + '<div class="rp-kpis">' + kp('إجمالي الحالات', N(T), 'كل الحالات في السجل', '#0837C9') + kp('لم يرد الفرع', N(K.no_reply), ltr(pctOf(K.no_reply, T)) + ' من الإجمالي', '#EF4444') +
+      kp('بانتظار الأوديت', N(K.awaiting), ltr(pctOf(K.awaiting, T)) + ' من الإجمالي', '#3B82F6') + kp('تتطلب إجراءً', N(K.action), ltr(pctOf(K.action, T)) + ' من الإجمالي', '#F59E0B') +
+      kp('حالات مغلقة', N(K.closed), ltr(pctOf(K.closed, T)) + ' من الإجمالي', '#22C55E') + kp('نسبة الاستجابة', pctOf(K.responded, T), 'حالات ظهر لها رد ÷ الإجمالي', '#00A9C4') + '</div>');
+    B.push('<h3>مسار المتابعة</h3><div class="rp-fun">' + parts.map((x) => '<i style="width:' + (x.n / T * 100) + '%;background:' + x.color + '"></i>').join('') + '</div>' +
+      '<div class="rp-leg">' + parts.map((x) => '<span><em style="background:' + x.color + '"></em>' + esc(x.label) + ' <b class="num">' + N(x.n) + '</b></span>').join('') + '</div>');
+    B.push('<div class="rp-two"><div><h3>أعلى الفروع حسب الشيت (غير مؤكد)</h3>' + bars(br, T, 5) + '</div><div><h3>أعلى حالات First Mile</h3>' + bars(fm, T, 5, '#00A9C4') + '</div></div>');
+    B.push('<h3>أهم النقاط</h3>' + (F.length ? '<ul style="margin:0;padding-inline-start:18px">' + F.slice(0, 4).map((x) => '<li><b>' + esc(x.t) + ':</b> <span>' + x.e + '</span></li>').join('') + '</ul>' : '<p class="rp-note">لا توجد ملاحظات آلية.</p>') +
+      '<div class="rp-warn">تنبيه: عمود «الفرع المخطئ» معروض كما هو في الشيت وغير مؤكد قبل مراجعة الأوديت، ولا يُعتمد لتقييم أداء الفروع.</div>');
+    B.push(sec('توزيع الحالات') + '<div class="rp-two"><div>' + dist(fu, 'حالة المتابعة') + '</div><div>' + dist(ty, 'نوع الحالة') + '</div></div>');
+    B.push('<div class="rp-two"><div>' + dist(st, 'حالة العميل / الطلب', 6) + '</div><div>' + dist(fm, 'حالة First Mile', 6) + '</div></div>');
+    B.push(sec('الفروع وجودة البيانات') + '<h3>الفرع المخطئ حسب الشيت (غير مؤكد)</h3>' + table([{ t: 'الفرع' }, { t: 'الحالات', num: 1, w: '18mm' }, { t: 'بيك اب', num: 1, w: '18mm' }, { t: 'طلبات العملاء', num: 1, w: '24mm' }, { t: 'النسبة', num: 1, w: '18mm' }],
+        br.slice(0, 8).map((r) => '<tr><td>' + esc(r.label) + '</td><td class="num">' + N(r.n) + '</td><td class="num">' + N(r.pickup) + '</td><td class="num">' + N(r.requests) + '</td><td class="num">' + pctOf(r.n, T) + '</td></tr>').join('') +
+        (br.length > 8 ? (() => { const o = br.slice(8).reduce((a, r) => ({ n: a.n + r.n, pickup: a.pickup + r.pickup, requests: a.requests + r.requests }), { n: 0, pickup: 0, requests: 0 }); return '<tr><td>أخرى (' + (br.length - 8) + ' فروع)</td><td class="num">' + N(o.n) + '</td><td class="num">' + N(o.pickup) + '</td><td class="num">' + N(o.requests) + '</td><td class="num">' + pctOf(o.n, T) + '</td></tr>'; })() : '')));
+    B.push('<h3>فحوصات جودة البيانات</h3>' + table([{ t: 'الفحص' }, { t: 'العدد', num: 1, w: '18mm' }, { t: 'النسبة', num: 1, w: '18mm' }, { t: 'الحالة', w: '26mm' }],
+        QCHECKS.map((c) => { const v = Q[c.key]; return '<tr><td>' + esc(c.label) + (c.note && v ? ' — ' + esc(c.note) : '') + '</td><td class="num">' + N(v) + '</td><td class="num">' + pctOf(v, Q.total) + '</td><td><span class="rp-badge ' + (v ? 'rp-b-act' : 'rp-b-ok') + '">' + (v ? 'يحتاج مراجعة' : 'سليم') + '</span></td></tr>'; }).join('')));
+    B.push(sec('الملاحظات والتوصيات') + (F.length ? table([{ t: '#', w: '8mm' }, { t: 'الملاحظة' }, { t: 'الدليل', w: '30mm' }, { t: 'الأثر المحتمل' }, { t: 'الإجراء المقترح' }, { t: 'المسؤول', w: '22mm' }, { t: 'الموعد', w: '18mm' }],
+        F.map((x, i) => '<tr><td class="num">' + (i + 1) + '</td><td>' + esc(x.t) + '</td><td>' + x.e + '</td><td>' + esc(x.i) + '</td><td>' + esc(x.a) + '</td><td><span class="rp-miss">' + MISSING + '</span></td><td><span class="rp-miss">' + MISSING + '</span></td></tr>').join('')) : '<p>لا توجد ملاحظات آلية.</p>') +
+      '<p class="rp-note">الأدلة محسوبة من السجل. «الأثر المحتمل» تفسير وليس نتيجة مثبتة. الإجراءات مقترحة وليست قرارات معتمدة. المسؤول والموعد غير متوفرين في المصدر ولم يُفترضا.</p>');
+    B.push('<div class="rp-sign"><div>إعداد</div><div>مراجعة</div><div>اعتماد</div></div><div class="rp-end">نهاية التقرير</div>');
+    return { cover, blocks: B };
+  }
+
+  function open() {
+    let ov = document.getElementById('rp-ov');
+    if (!ov) { ov = document.createElement('div'); ov.id = 'rp-ov'; ov.className = 'rp-ov'; document.body.appendChild(ov); }
+    ov.innerHTML = '<div class="rp-toolbar"><b>معاينة التقرير</b><div class="rp-tb"><button type="button" id="rp-print">طباعة / حفظ PDF</button><button type="button" id="rp-close">إغلاق</button></div></div><div class="rp-stage" id="rp-stage"></div>';
+    ov.hidden = false; document.body.classList.add('rp-open');
+    const stage = document.getElementById('rp-stage');
+    const k = dash.data('kpis');
+    if (dash.data('cases').status !== 'ok' || !k.data.length || !k.data[0].total) stage.innerHTML = page('<h2>لا توجد بيانات</h2><p>لا توجد حالات متاحة لإعداد التقرير.</p>');
+    else {
+      try {
+        const r = build(); ctx.r = r;
+        stage.insertAdjacentHTML('beforeend', r.cover);
+        const mk = () => { const pg = document.createElement('section'); pg.className = 'rp-page fixed'; pg.innerHTML = head() + '<div class="rp-body"></div>' + foot(); stage.appendChild(pg); return pg.querySelector('.rp-body'); };
+        let body = mk();
+        const fits = () => body.scrollHeight <= body.clientHeight + 1;
+        // يضع الكتلة في الصفحة الحالية، ويقسّم الجدول على مستوى الصفوف عند الحاجة (مع تكرار رأس الجدول)
+        const place = (el) => {
+          body.appendChild(el);
+          if (fits()) return;
+          const tbl = el.querySelectorAll('table.rp-table').length === 1 ? el.querySelector('table.rp-table') : null, tb = tbl && tbl.tBodies[0];
+          if (tb && tb.rows.length > 3) {
+            const moved = [];
+            while (tb.rows.length > 2 && !fits()) moved.unshift(tb.removeChild(tb.rows[tb.rows.length - 1]));
+            if (fits() && moved.length) {
+              const rest = document.createElement('div'); rest.className = 'rp-blk';
+              const t2 = tbl.cloneNode(true); t2.tBodies[0].replaceChildren(...moved); rest.appendChild(t2);
+              while (tbl.nextSibling) rest.appendChild(tbl.nextSibling);
+              body = mk(); place(rest); return;
+            }
+            moved.forEach((r) => tb.appendChild(r));
+          }
+          if (body.children.length > 1) { body.removeChild(el); body = mk(); body.appendChild(el); }
+        };
+        r.blocks.forEach((html) => { const el = document.createElement('div'); el.className = 'rp-blk'; el.innerHTML = html; place(el); });
+      } catch (e) { console.error(e); stage.innerHTML = page('<h2>تعذّر إعداد التقرير</h2><p>أعد المحاولة بعد تحديث اللوحة.</p>'); }
+    }
+    const sheets = ov.querySelectorAll('.rp-page');
+    sheets.forEach((p, i) => { const pn = p.querySelector('.rp-pn'); if (pn) pn.textContent = 'صفحة ' + (i + 1) + ' من ' + sheets.length; });
+    document.getElementById('rp-close').onclick = close;
+    document.getElementById('rp-print').onclick = () => window.print();
+  }
+  function close() { const ov = document.getElementById('rp-ov'); if (ov) ov.hidden = true; document.body.classList.remove('rp-open'); }
+  document.getElementById('mp-report').onclick = open;
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+})();
+</script>
+
+</body>
+</html>
