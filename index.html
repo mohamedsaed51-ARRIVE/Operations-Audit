@@ -36405,7 +36405,7 @@ function buildModel(all,from,to){
  const withBoth=mism.filter(r=>r.m!=null&&r.r!=null);
  const diffOf=r=>r.m-r.r;
  const plus=withBoth.reduce((s,r)=>s+Math.max(0,diffOf(r)),0),minus=withBoth.reduce((s,r)=>s+Math.max(0,-diffOf(r)),0);
- const net=plus-minus,diffRows=withBoth.filter(r=>diffOf(r)!==0).length,zeroRows=withBoth.length-diffRows;
+ const net=plus+minus,diffRows=withBoth.filter(r=>diffOf(r)!==0).length,zeroRows=withBoth.length-diffRows;
  const closed=mism.filter(r=>r.pr==='تم الانتهاء').length;
  // الأسباب
  const reasonsSeen=[...new Set(mism.map(r=>reason(r.err)))];
@@ -36414,7 +36414,7 @@ function buildModel(all,from,to){
  const reasonRows=reasons.map(x=>{const g=mism.filter(r=>reason(r.err)===x);return {name:x,n:g.length,m:g.filter(r=>cat(r)==='m').length,b:g.filter(r=>cat(r)==='b').length,u:g.filter(r=>cat(r)==='u').length}});
  // الفرع المخطئ
  const fm=new Map();
- mism.forEach((r,i)=>{const k=r.at===''?'غير محدد':r.at;if(!fm.has(k))fm.set(k,{name:k,n:0,by:{},net:0,first:i});const o=fm.get(k);o.n++;const rs=reason(r.err);o.by[rs]=(o.by[rs]||0)+1;if(r.m!=null&&r.r!=null)o.net+=diffOf(r)});
+ mism.forEach((r,i)=>{const k=r.at===''?'غير محدد':r.at;if(!fm.has(k))fm.set(k,{name:k,n:0,by:{},net:0,first:i});const o=fm.get(k);o.n++;const rs=reason(r.err);o.by[rs]=(o.by[rs]||0)+1;if(r.m!=null&&r.r!=null)o.net+=Math.abs(diffOf(r))});
  const fault=[...fm.values()].sort((a,b)=>(a.name==='غير محدد')-(b.name==='غير محدد')||b.n-a.n||a.first-b.first);
  const noFault=brs.filter(b=>!fm.has(b)&&b!=='الرئيسي'&&b!=='غير محدد');
  // يومي
@@ -36442,9 +36442,9 @@ function blocks(M){
  B.push({t:'kpis',cards:[
   {label:'إجمالي الشحنات المُبلَّغ عنها من الرئيسي',value:N(M.totalMain),sub:`${N(nb)} سجلًا لـ ${N(M.brs.length)} فرعًا على ${N(M.days.length)} أيام عمل`,tone:'navy'},
   {label:'سجلات عدم المطابقة',value:N(nm),pct:P(nm,nb),sub:`من إجمالي ${N(nb)} سجلًا`,tone:'red'},
-  {label:'صافي فروق العدد (الرئيسي − الفرع)',value:N(M.net),pct:P(Math.abs(M.net),M.totalMain),sub:`في ${N(M.diffRows)} سجلًا بها فرق | من ${N(M.totalMain)} شحنة`,tone:'red'},
+  {label:'إجمالي فروق العدد (الرئيسي − الفرع)',value:N(M.net),pct:P(M.net,M.totalMain),sub:`في ${N(M.diffRows)} سجلًا بها فرق | من ${N(M.totalMain)} شحنة`,tone:'red'},
   {label:'حالات عدم مطابقة مقفولة',value:N(M.closed),pct:P(M.closed,nm),sub:`من ${N(nm)} سجلًا حسب عمود حالة المشكلة`,tone:'navy'}]});
- B.push({t:'note',text:`سجلات بلا خطأ: ${N(nb-nm)} (${P(nb-nm,nb)}). صافي الفرق = مجموع (عدد الرئيسي − عدد الفرع) في سجلات عدم المطابقة: ${N(M.plus)} زيادة في عدد الرئيسي مقابل ${N(M.minus)} زيادة في عدد الفرع، و${N(M.zeroRows)} سجلًا بلا فرق في العدد.`});
+ B.push({t:'note',text:`سجلات بلا خطأ: ${N(nb-nm)} (${P(nb-nm,nb)}). إجمالي الفروق = مجموع القيمة المطلقة لـ (عدد الرئيسي − عدد الفرع) في كل سجل، فلا يُلغي النقصُ الزيادةَ: ${N(M.plus)} زيادة في عدد الرئيسي مقابل ${N(M.minus)} زيادة في عدد الفرع، و${N(M.zeroRows)} سجلًا بلا فرق في العدد.`});
  // ثانيا
  B.push({t:'h',text:'ثانيًا: أسباب عدم المطابقة والفرع المخطئ'});
  const rr=M.reasonRows,sum=k=>rr.reduce((s,x)=>s+x[k],0);
@@ -36455,9 +36455,9 @@ function blocks(M){
  B.push({t:'h',text:'ثالثًا: توزيع حالات عدم المطابقة حسب الفرع المخطئ'});
  const rc=M.reasons;
  const sh=Math.max(0,100-24-rc.length*8-12);
- B.push({t:'table',w:[17,17,...rc.map(()=>8.5),13],cols:['الفرع المخطئ','سجلات عدم المطابقة (النسبة)',...rc.map(x=>x==='شحنات غير مدرجة'?'غير مدرجة':x==='عدم التبليغ بالمطابقة'?'عدم تبليغ':x),'صافي الفرق (شحنة)'],
+ B.push({t:'table',w:[17,17,...rc.map(()=>8.5),13],cols:['الفرع المخطئ','سجلات عدم المطابقة (النسبة)',...rc.map(x=>x==='شحنات غير مدرجة'?'غير مدرجة':x==='عدم التبليغ بالمطابقة'?'عدم تبليغ':x),'إجمالي الفرق (شحنة)'],
   rows:[...M.fault.map(f=>({c:[bd(f.name),`${N(f.n)} (${P(f.n,nm)})`,...rc.map(x=>N(f.by[x]||0)),N(f.net)],hl:nm&&f.n/nm>=0.05?'red':null})),{c:['الإجمالي',`${N(nm)} (${nm?'100.0%':'—'})`,...rc.map(x=>N(M.mism.filter(r=>M.reason(r.err)===x).length)),N(M.fault.reduce((s,f)=>s+f.net,0))],total:1}]});
- B.push({t:'note',text:`النسبة من إجمالي ${N(nm)} سجل عدم مطابقة. المظلل: جهة منسوب إليها 5% فأكثر.${M.noFault.length?` بلا حالات منسوبة: ${M.noFault.map(bd).join('، ')}.`:''} صافي الفرق = عدد الرئيسي − عدد الفرع (السالب: الفرع سجّل أكثر).`});
+ B.push({t:'note',text:`النسبة من إجمالي ${N(nm)} سجل عدم مطابقة. المظلل: جهة منسوب إليها 5% فأكثر.${M.noFault.length?` بلا حالات منسوبة: ${M.noFault.map(bd).join('، ')}.`:''} إجمالي الفرق = مجموع القيمة المطلقة لفرق (عدد الرئيسي − عدد الفرع) في كل سجل.`});
  // رابعا
  B.push({t:'h',text:'رابعًا: التوزيع اليومي'});
  const hiDays=M.daily.filter(d=>d.pct>=40).map(d=>d.d.slice(8,10)+'-'+d.d.slice(5,7));
@@ -36497,7 +36497,7 @@ function blocks(M){
  q('أعمدة غير مستكملة',`عمود «نتيجة التحقيق» مكتوب في ${N(M.mism.filter(r=>r.res).length)} من ${N(nm)} سجل عدم مطابقة${allFalse?'، وعمود «مسؤل المراجعه» غير محدد في كل السجلات':''}، و«التحقيق في الشكوى» مكتوب في ${N(M.mism.filter(r=>r.inv).length)} سجلًا`,'لا يمكن قياس نتائج التحقيق');
  const vars=new Set();M.base.forEach(r=>{[[r.brr,r.br],[r.atr,r.at]].forEach(([raw,n])=>{if(raw&&n&&raw.trim()!==n&&raw.trim().replace(/^فرع\s+/,'')!==n)vars.add(raw.trim())})});
  if(vars.size) q('أسماء الفروع',`اختلافات إملائية في عمودي الفرع المستلم والفرع المخطي (${[...vars].slice(0,4).join('، ')}${vars.size>4?'...':''})`,'وُحّدت دون تغيير المعنى');
- q('طريقة حساب الفرق','الفرق = عدد الرئيسي − عدد الفرع بصافي الإشارة؛ السالب يعني أن الفرع سجّل أكثر','طُبقت على كل سجلات عدم المطابقة');
+ q('طريقة حساب الفرق','الفرق لكل سجل = عدد الرئيسي − عدد الفرع، ويُجمع عند التجميع بالقيمة المطلقة فلا يقلّل السالبُ الموجبَ','طُبقت على كل سجلات عدم المطابقة');
  B.push({t:'h',text:'ثامنًا: ملاحظات جودة البيانات'});
  B.push({t:'table',w:[5,17,48,30],cols:['م','البند','التفصيل','المعالجة في التقرير'],rows:Q.map((x,i)=>({c:[N(i+1),...x]}))});
  // تاسعا
