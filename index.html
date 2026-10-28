@@ -36986,9 +36986,9 @@ chipUpd.textContent=DATA.gen;draw();
    التابات المباشرة: التحويلات، المسح، المشاكل اليومي، الجزاءات. المطابقة الصباحية تبقى على اللقطة المضمّنة
    لأنها مدموجة من شيتين بقواعد غير موجودة في الريبو. عند فشل الاتصال تُعرض اللقطة مع تنبيه ظاهر. */
 const DEFAULT_API_URL='https://script.google.com/macros/s/AKfycbyhFTGki7nqZxyJ3VW-rG09WuoQ0ELQoI9XFt6tLyu0geBac19lOtWxTGm4fBOIrsjf/exec';
-const SNAP=DATA,LIVE_TABS=['t2','t3','t4','t5'],POLL_MS=5*60*1000;
-const LF={t2:{br:'B',at:'B',ok:'F',why:'F',desc:'F'},t3:{br:'B',why:'F',fn:'F'},t4:{br:'B',ty:'F',fin:'F',fn:'F'},t5:{br:'B',ty:'F',ac:'F',n:'F'}};
-const LSHAPE={t2:['d','br','ok','why','desc','at','wb'],t3:['d','br','why','fn','wb'],t4:['d','br','ty','fin','fn','wb'],t5:['d','br','ty','ac','n']};
+const SNAP=DATA,LIVE_TABS=['t1','t2','t3','t4','t5'],POLL_MS=5*60*1000;
+const LF={t1:{br:'B',at:'B',st:'F',err:'F',pr:'F',who:'F'},t2:{br:'B',at:'B',ok:'F',why:'F',desc:'F'},t3:{br:'B',why:'F',fn:'F'},t4:{br:'B',ty:'F',fin:'F',fn:'F'},t5:{br:'B',ty:'F',ac:'F',n:'F'}};
+const LSHAPE={t1:['d','br','brr','m','r','st','err','at','atr','pr','who','wb','dl','inv','res','rv','iso'],t2:['d','br','ok','why','desc','at','wb'],t3:['d','br','why','fn','wb'],t4:['d','br','ty','fin','fn','wb'],t5:['d','br','ty','ac','n']};
 const toEn=s=>s.replace(/[٠-٩]/g,c=>c.charCodeAt(0)-1632).replace(/[۰-۹]/g,c=>c.charCodeAt(0)-1776);
 const fold=s=>String(s).replace(/[ً-ٟـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/\s+/g,'').toLowerCase();
 const clean=s=>String(s==null?'':s).replace(/\s+/g,' ').trim();
@@ -37004,17 +37004,19 @@ function canonMaps(){
  for(const r of SNAP.t1||[]){if(r.atr&&r.at&&fold(r.atr)!==fold(r.at))out.B.set(fold(r.atr),r.at);if(r.brr&&r.br&&fold(r.brr)!==fold(r.br))out.B.set(fold(r.brr),r.br)}
  return CANON=out;
 }
-function parseD(raw,gen){
+const MON=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'],MONF=MON.map(fold);
+function parseD(raw,gen,mo){
  let s=toEn(clean(raw));if(!s)return{bad:'تاريخ فارغ'};
  s=s.replace(/[T ].*$/,'');let x,y,m,d;
- if(x=/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/.exec(s)){y=+x[1];m=+x[2];d=+x[3]}
+ let isoFmt=0;
+ if(x=/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/.exec(s)){y=+x[1];m=+x[2];d=+x[3];isoFmt=1;const mi=mo?MONF.indexOf(fold(mo))+1:0;if(mi&&m!==mi&&d===mi){const z=m;m=d;d=z}}
  else if(x=/^(\d{1,2})[-\/.](\d{1,2})(?:[-\/.](\d{2,4}))?$/.exec(s)){d=+x[1];m=+x[2];y=x[3]?(x[3].length===2?2000+ +x[3]:+x[3]):2026}
  else return{bad:'تاريخ غير مفهوم'};
  const t=new Date(Date.UTC(y,m-1,d));
  if(t.getUTCFullYear()!==y||t.getUTCMonth()!==m-1||t.getUTCDate()!==d)return{bad:'تاريخ غير مفهوم'};
  if(y!==2026)return{bad:'سنة خارج 2026'};
  const p=n=>String(n).padStart(2,'0'),iso=`${y}-${p(m)}-${p(d)}`;
- return iso>gen?{bad:'تاريخ بعد يوم التحديث'}:{iso};
+ return iso>gen?{bad:'تاريخ بعد يوم التحديث'}:{iso,isoFmt};
 }
 function buildLive(resp,gen){
  const C=canonMaps(),data={},q={},ex={},unk={};
@@ -37025,12 +37027,19 @@ function buildLive(resp,gen){
    total++;
    const ds=clean(raw.d),bad=r=>{drop[r]=(drop[r]||0)+1;if(exs.length<60)exs.push({r:raw._r,v:ds,why:r})};
    if(ds&&!/\d/.test(toEn(ds))&&ds.includes('تاريخ')){bad('صفوف عناوين مكررة');continue}
-   const p=parseD(raw.d,gen);if(p.bad){bad(p.bad);continue}
+   const p=parseD(raw.d,gen,t==='t1'?clean(raw.mo):'');if(p.bad){bad(p.bad);continue}
    const o={d:p.iso};
    for(const f of LSHAPE[t]){if(f==='d')continue;
+    if(t==='t1'){
+     if(f==='iso'){o.iso=p.isoFmt?1:0;continue}
+     if(f==='brr'){o.brr=clean(raw.br);continue}
+     if(f==='atr'){o.atr=clean(raw.at);continue}
+     if(f==='m'||f==='r'){const n=toEn(clean(raw[f])).replace(/,/g,'');o[f]=n!==''&&!isNaN(+n)?+n:null;continue}
+     if(f==='inv'||f==='res'){o[f]=clean(raw[f])?1:0;continue}
+     if(f==='rv'||f==='dl'){o[f]=clean(raw[f]);continue}}
     let v=clean(raw[f]);
-    if(f==='wb')v=v.split(' ')[0]||'';
-    else if(LF[t][f]==='B'){v=v.replace(/^فرع\s+/,'');if(v){const c=C.B.get(fold(v));if(c)v=c;else(un['الفرع']=un['الفرع']||new Set()).add(v)}else v='غير محدد'}
+    if(f==='wb')v=String(raw.wb||'').split(/\r?\n/)[0].trim();
+    else if(LF[t][f]==='B'){v=v.replace(/^فرع\s+/,'');if(v){const c=C.B.get(fold(v));if(c)v=c;else(un['الفرع']=un['الفرع']||new Set()).add(v)}else v=f==='br'?'غير محدد':''}
     else if(LF[t][f]==='F'&&v){const c=(C[t+'.'+f]||new Map()).get(fold(v));if(c)v=c;else(un[f]=un[f]||new Set()).add(v)}
     o[f]=v}
    rows.push(o)}
@@ -37042,7 +37051,7 @@ function liveState(){return DATA.live||null}
 function setSrc(kind,msg){
  const c=document.getElementById('chipSrc');if(!c)return;
  const fmtT=iso=>new Date(iso).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
- if(kind==='live'){c.textContent='مباشر من الشيت · '+fmtT(DATA.live.at)+' (المطابقة الصباحية: لقطة '+SNAP.gen+')';c.style.background='#0f7b4f'}
+ if(kind==='live'){const tl=DATA.live.tabs,all=tl.length===LIVE_TABS.length;c.textContent='مباشر من الشيت ('+fmtT(DATA.live.at)+')'+(all?' — كل التابات':': '+tl.map(t=>TN[t]).join(' · ')+' — الباقي لقطة '+SNAP.gen);c.style.background='#0f7b4f'}
  else if(kind==='loading'){c.textContent='جارٍ القراءة من الشيت…';c.style.background=''}
  else if(kind==='fail'){c.textContent='تعذّرت القراءة المباشرة — تُعرض لقطة '+SNAP.gen+(msg?' · السبب: '+msg:'');c.style.background='#b42318';c.title=msg||''}
  else{c.textContent='لقطة ثابتة '+SNAP.gen+' — لم يُربط الشيت بعد';c.style.background='#b54708'}
@@ -37050,7 +37059,7 @@ function setSrc(kind,msg){
 }
 function applyLive(resp){
  const gen=localISO(),R=buildLive(resp,gen);
- DATA={...SNAP,...R.data,q:{...SNAP.q,...R.q},ex:R.ex,unk:R.unk,gen,live:{at:resp.updatedAt||new Date().toISOString(),problems:resp.problems||[]}};
+ DATA={...SNAP,...R.data,q:{...SNAP.q,...R.q},ex:R.ex,unk:R.unk,gen,live:{at:resp.updatedAt||new Date().toISOString(),problems:resp.problems||[],tabs:LIVE_TABS.filter(t=>R.data[t])}};
  for(const k of Object.keys(XP))delete XP[k];
  chipUpd.textContent=DATA.gen;setSrc('live',(resp.problems||[]).join(' | '));draw();
 }
@@ -37073,7 +37082,7 @@ setInterval(()=>{if(!document.hidden&&apiUrl())syncLive()},POLL_MS);
 function liveExtra(){
  const L=DATA.live,e=[];
  if(!L)return `<div class="note">البيانات الحالية لقطة ثابتة بتاريخ ${esc(SNAP.gen)}؛ لا تظهر عليها تعديلات الشيت قبل ربط الـ API.</div>`;
- e.push(`<div class="note">المصدر: قراءة مباشرة من الشيت (${esc(new Date(L.at).toLocaleString('ar-EG'))}) للتابات: التحويلات، المسح، المشاكل اليومي، الجزاءات. المطابقة الصباحية ما زالت لقطة ${esc(SNAP.gen)}.</div>`);
+ e.push(`<div class="note">المصدر: قراءة مباشرة من الشيت (${esc(new Date(L.at).toLocaleString('ar-EG'))}) للتابات: ${L.tabs.map(t=>esc(TN[t])).join('، ')}.${L.tabs.length<LIVE_TABS.length?` باقي التابات ما زالت لقطة ${esc(SNAP.gen)} (حدّث نشر الـ Apps Script بالنسخة الأحدث).`:''}</div>`);
  if(L.problems.length)e.push(`<div class="note" style="border-color:#b42318">تنبيه من الـ API: ${L.problems.map(esc).join('، ')}</div>`);
  const un=LIVE_TABS.flatMap(t=>Object.entries(DATA.unk[t]||{}).map(([f,v])=>`<tr><td>${TN[t]}</td><td>${esc(f)}</td><td>${v.map(esc).join('، ')}</td></tr>`));
  if(un.length)e.push(`<div class="panel"><h3>قيم جديدة غير موحّدة (لم تكن في اللقطة الأولى)</h3><div class="tw"><table><thead><tr><th>التاب</th><th>الحقل</th><th>القيم</th></tr></thead><tbody>${un.join('')}</tbody></table></div></div>`);
