@@ -37042,7 +37042,7 @@ function liveState(){return DATA.live||null}
 function setSrc(kind,msg){
  const c=document.getElementById('chipSrc');if(!c)return;
  const fmtT=iso=>new Date(iso).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
- if(kind==='live'){c.textContent='مباشر من الشيت · '+fmtT(DATA.live.at)+' (المطابقة الصباحية: لقطة '+SNAP.gen+')';c.style.background='#0f7b4f'}
+ if(kind==='live'){c.textContent='مباشر ('+fmtT(DATA.live.at)+'): التحويلات · المسح · المشاكل · الجزاءات — المطابقة الصباحية: لقطة '+SNAP.gen;c.style.background='#0f7b4f'}
  else if(kind==='loading'){c.textContent='جارٍ القراءة من الشيت…';c.style.background=''}
  else if(kind==='fail'){c.textContent='تعذّرت القراءة المباشرة — تُعرض لقطة '+SNAP.gen+(msg?' · السبب: '+msg:'');c.style.background='#b42318';c.title=msg||''}
  else{c.textContent='لقطة ثابتة '+SNAP.gen+' — لم يُربط الشيت بعد';c.style.background='#b54708'}
