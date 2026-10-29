@@ -37078,7 +37078,9 @@ async function syncLive(){
  }catch(e){let m=String(e&&e.message||e);if(/failed to fetch|networkerror|load failed/i.test(m))m='تعذّر الوصول للرابط (غالبًا النشر ليس «Anyone» أو الرابط/الإصدار غير صحيح)';else if(e&&e.name==='AbortError')m='انتهت المهلة';else if(/JSON|token/i.test(m))m='الرابط لم يرجع JSON (غالبًا صفحة تسجيل دخول: النشر ليس «Anyone»)';setSrc('fail',m)}
  finally{syncing=false}
 }
-function apiUrl(){try{const q=new URLSearchParams(location.search).get('api');if(q){localStorage.setItem('arrive_ops_api',q);return q}return localStorage.getItem('arrive_ops_api')||DEFAULT_API_URL}catch(e){return DEFAULT_API_URL}}
+/* أمان: لا يُقبل مصدر بيانات إلا رابط Apps Script رسمي (https://script.google.com/.../exec)؛ أي قيمة أخرى في ?api= أو في التخزين المحلي تُتجاهل */
+const API_OK=/^https:\/\/script\.google\.com\/(?:a\/macros\/[A-Za-z0-9.-]+\/|macros\/)s\/[A-Za-z0-9_-]+\/exec$/;
+function apiUrl(){try{const q=new URLSearchParams(location.search).get('api');if(q&&API_OK.test(q)){localStorage.setItem('arrive_ops_api',q);return q}const st=localStorage.getItem('arrive_ops_api');return(st&&API_OK.test(st))?st:DEFAULT_API_URL}catch(e){return DEFAULT_API_URL}}
 btnSync.onclick=syncLive;
 setInterval(()=>{if(!document.hidden&&apiUrl())syncLive()},POLL_MS);
 function liveExtra(){
