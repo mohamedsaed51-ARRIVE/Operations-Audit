@@ -1,0 +1,39 @@
+{
+  "name": "arrive-audit-agent",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "ARRIVE AI Inventory & Audit Agent — Phase 2: foundation and data ingestion engine",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "tests"
+  ],
+  "scripts": {
+    "build": "tsc -b && node packages/engine/scripts/copy-worker.mjs && npm run build --workspace @arrive/web",
+    "typecheck": "tsc -p tsconfig.check.json && tsc -p apps/web/tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "db:migrate": "tsx packages/database/src/cli.ts up",
+    "db:rollback": "tsx packages/database/src/cli.ts down",
+    "db:status": "tsx packages/database/src/cli.ts status",
+    "db:seed": "tsx packages/database/src/cli.ts seed",
+    "dev:api": "npm run dev --workspace @arrive/api",
+    "dev:web": "npm run dev --workspace @arrive/web",
+    "fixtures": "tsx tests/fixtures/generate.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^5.0.5",
+    "eslint": "^9.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^5.0.5"
+  }
+}

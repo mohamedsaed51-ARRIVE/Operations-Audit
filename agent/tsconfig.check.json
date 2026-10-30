@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "baseUrl": ".",
+    "paths": {
+      "@arrive/shared": ["packages/shared/src/index.ts"],
+      "@arrive/engine": ["packages/engine/src/index.ts"],
+      "@arrive/database": ["packages/database/src/index.ts"],
+      "@arrive/ai": ["packages/ai/src/index.ts"]
+    }
+  },
+  "include": [
+    "packages/*/src", "packages/*/test", "apps/api/src", "apps/api/test",
+    "tests/**/*.ts", "vitest.config.ts", "vitest.shared.ts"
+  ]
+}

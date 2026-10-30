@@ -1,0 +1,16 @@
+{
+  "name": "@arrive/tests",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fixtures": "tsx fixtures/generate.ts",
+    "test": "vitest run --root .. tests"
+  },
+  "dependencies": {
+    "@arrive/api": "0.2.0",
+    "@arrive/database": "0.2.0",
+    "@arrive/engine": "0.2.0",
+    "xlsx": "0.18.5"
+  }
+}

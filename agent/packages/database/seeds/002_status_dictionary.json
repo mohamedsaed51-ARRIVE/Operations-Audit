@@ -1,0 +1,16 @@
+{
+  "_note": "PLACEHOLDER statuses used to exercise the pipeline. ARRIVE's official status list has not been provided yet and must replace these before production use.",
+  "source": "SEED_PLACEHOLDER",
+  "statuses": [
+    { "code": "NEW", "label_ar": "جديدة", "label_en": "New", "is_terminal": null, "aliases": ["جديد", "جديدة", "تم الإنشاء", "New", "Created"] },
+    { "code": "PICKED_UP", "label_ar": "تم الاستلام من العميل", "label_en": "Picked up", "is_terminal": null, "aliases": ["تم الاستلام من العميل", "تم الاستلام", "Picked Up"] },
+    { "code": "AT_BRANCH", "label_ar": "بالفرع", "label_en": "At branch", "is_terminal": null, "aliases": ["بالفرع", "في الفرع", "At Branch", "Received at Branch"] },
+    { "code": "IN_TRANSIT", "label_ar": "في الطريق", "label_en": "In transit", "is_terminal": null, "aliases": ["في الطريق", "تم التحويل", "In Transit"] },
+    { "code": "OUT_FOR_DELIVERY", "label_ar": "مع المندوب", "label_en": "Out for delivery", "is_terminal": null, "aliases": ["مع المندوب", "خرج للتسليم", "خرج للتوصيل", "Out For Delivery"] },
+    { "code": "DELIVERED", "label_ar": "تم التسليم", "label_en": "Delivered", "is_terminal": true, "aliases": ["تم التسليم", "Delivered"] },
+    { "code": "RETURNED", "label_ar": "مرتجع", "label_en": "Returned", "is_terminal": null, "aliases": ["مرتجع", "تم الارتجاع", "Returned"] },
+    { "code": "PENDING", "label_ar": "معلقة", "label_en": "Pending", "is_terminal": null, "aliases": ["معلق", "معلقة", "Pending"] },
+    { "code": "DELIVERY_FAILED", "label_ar": "فشل التسليم", "label_en": "Delivery failed", "is_terminal": null, "aliases": ["فشل التسليم", "لم يتم الرد", "Delivery Failed"] },
+    { "code": "CANCELLED", "label_ar": "ملغاة", "label_en": "Cancelled", "is_terminal": true, "aliases": ["ملغي", "ملغاة", "Cancelled", "Canceled"] }
+  ]
+}
