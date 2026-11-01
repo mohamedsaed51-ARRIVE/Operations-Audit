@@ -36963,7 +36963,7 @@ function cmpRows(f,t){const sel=S.sel[S.tab];return DATA[S.tab].filter(r=>r.d>=f
 function cmpTbl(h,body){return `<div class="tw"><table><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>`}
 function cmpChange(a,b,rate){
  const d=b-a,up=d>0?'▲':d<0?'▼':'●',cl=d>0?'#b42318':d<0?'#0f7b4f':'inherit';
- return {d,up,cl,txt:rate?`${d>0?'+':''}${d.toFixed(1)} نقطة`:`${d>0?'+':''}${fmt(d)}`,pc:rate?'—':(a?`${d>0?'+':''}${(d/a*100).toFixed(1)}%`:'—')};
+ return {d,up,cl,txt:rate?`\u200E${d>0?'+':''}${d.toFixed(1)}\u200E نقطة`:`\u200E${d>0?'+':''}${fmt(d)}`,pc:rate?'—':(a?`\u200E${d>0?'+':''}${(d/a*100).toFixed(1)}%`:'—')};
 }
 function comparePanel(){
  const st=cmpState();
@@ -36977,6 +36977,7 @@ function comparePanel(){
  const fv=m=>m.d!=null?`<span class="num">${m.d?(m.n/m.d*100).toFixed(1)+'%':MISSING}</span> <small class="num">(${fmt(m.n)}/${fmt(m.d)})</small>`:`<span class="num">${fmt(m.n)}</span>`;
  const kr=ma.map((x,i)=>{const y=mb[i],rate=x.d!=null,va=rate?(x.d?x.n/x.d*100:0):x.n,vb=rate?(y.d?y.n/y.d*100:0):y.n,c=cmpChange(va,vb,rate),col=x.bad?c.cl:'inherit';
   return `<tr><td>${x.l}</td><td>${fv(x)}</td><td>${fv(y)}</td><td class="num" style="color:${col}">${c.txt}</td><td class="num" style="color:${col}">${c.pc}</td><td style="color:${col}">${c.up}</td></tr>`}).join('');
+ out+=`<div class="xp-f" style="margin-bottom:10px"><button class="btn" id="cmpPrev" type="button">معاينة التقرير</button><button class="btn solid" id="cmpDoc" type="button">تنزيل Word</button><button class="btn" id="cmpPdf" type="button">طباعة / PDF</button></div>`;
  out+=`<div class="xp-s">الفترة أ: <b class="num">${fmt(A.length)}</b> سجل (${st.aF} → ${st.aT}) · الفترة ب: <b class="num">${fmt(B.length)}</b> سجل (${st.bF} → ${st.bT}). الفرق = ب − أ. الأحمر = زيادة في مؤشر خطأ، الأخضر = نقص فيه.</div>`;
  out+=cmpTbl(['المؤشر','الفترة أ','الفترة ب','الفرق','% التغير',''],kr);
  const ca=new Map(countBy(A,r=>r.br)),cb=new Map(countBy(B,r=>r.br)),br=[...new Set([...ca.keys(),...cb.keys()])].sort((x,y)=>((cb.get(y)||0)+(ca.get(y)||0))-((cb.get(x)||0)+(ca.get(x)||0))).slice(0,15);
@@ -36986,12 +36987,54 @@ function comparePanel(){
  }
  return out+'</div>';
 }
+function cmpReport(){
+ const st=cmpState(),A=cmpRows(st.aF,st.aT),B=cmpRows(st.bF,st.bT),mf=CMPM[S.tab],ma=mf(A),mb=mf(B),{N,P,dmy,bd}=REP1;
+ const days=(f,t)=>Math.round((new Date(t+'T00:00:00Z')-new Date(f+'T00:00:00Z'))/864e5)+1;
+ const title='تقرير مقارنة '+TN[S.tab],sel=S.sel[S.tab],pa=`${dmy(st.aF)} – ${dmy(st.aT)}`,pb=`${dmy(st.bF)} – ${dmy(st.bT)}`;
+ const bl=[];
+ bl.push({t:'head',title,l1:`الفترة (أ): ${pa}  |  الفترة (ب): ${pb}`,l2:'إعداد: إدارة المراجعة – ARRIVE'});
+ bl.push({t:'src',text:`المصدر: ${TN[S.tab]} – ${N(A.length)} سجلًا في الفترة (أ) و${N(B.length)} سجلًا في الفترة (ب)${sel?` – مقصورة على: ${[...sel].join('، ')}`:' – كل الفروع'}`});
+ bl.push({t:'h',text:'الهدف من التقرير'});
+ bl.push({t:'p',text:`مقارنة مؤشرات «${TN[S.tab]}» بين الفترتين (أ) ${pa} و(ب) ${pb} لتحديد اتجاه التغير، مع إبراز المؤشرات التي ارتفعت من مؤشرات الخطأ. الفرق = الفترة (ب) − الفترة (أ).`});
+ bl.push({t:'h',text:'أولًا: الفترتان المقارنتان'});
+ bl.push({t:'table',w:[30,24,24,22],cols:['الفترة','من','إلى','عدد السجلات (عدد الأيام)'],rows:[
+  {c:['الفترة (أ)',dmy(st.aF),dmy(st.aT),`${N(A.length)} (${N(days(st.aF,st.aT))} يومًا)`]},
+  {c:['الفترة (ب)',dmy(st.bF),dmy(st.bT),`${N(B.length)} (${N(days(st.bF,st.bT))} يومًا)`]}]});
+ if(days(st.aF,st.aT)!==days(st.bF,st.bT))bl.push({t:'note',text:`تنبيه: طول الفترتين مختلف (${days(st.aF,st.aT)} مقابل ${days(st.bF,st.bT)} يومًا)؛ الأعداد المطلقة غير قابلة للمقارنة المباشرة، والنسب أدق في هذه الحالة.`});
+ bl.push({t:'h',text:'ثانيًا: مقارنة المؤشرات'});
+ const val=(m)=>m.d!=null?`${m.d?(m.n/m.d*100).toFixed(1)+'%':'—'} (${N(m.n)}/${N(m.d)})`:N(m.n);
+ bl.push({t:'table',w:[30,20,20,15,15],cols:['المؤشر','الفترة (أ)','الفترة (ب)','الفرق','% التغير'],rows:ma.map((x,i)=>{
+  const y=mb[i],rate=x.d!=null,va=rate?(x.d?x.n/x.d*100:0):x.n,vb=rate?(y.d?y.n/y.d*100:0):y.n,c=cmpChange(va,vb,rate);
+  return {c:[x.l,val(x),val(y),c.txt,c.pc],hl:x.bad&&c.d>0?'red':null}})});
+ bl.push({t:'note',text:'الفرق في النسب بالنقاط المئوية، وفي الأعداد بالقيمة المطلقة. المظلل: مؤشر خطأ ارتفع في الفترة (ب) عن الفترة (أ). نسب كل فترة محسوبة على مقامها نفسه.'});
+ const ca=new Map(countBy(A,r=>r.br)),cb=new Map(countBy(B,r=>r.br)),br=[...new Set([...ca.keys(),...cb.keys()])].sort((x,y)=>((cb.get(y)||0)+(ca.get(y)||0))-((cb.get(x)||0)+(ca.get(x)||0))).slice(0,25);
+ if(br.length){
+  bl.push({t:'h',text:`ثالثًا: عدد السجلات حسب ${TABS.find(x=>x.id===S.tab).bf}`});
+  bl.push({t:'table',w:[28,18,18,18,18],cols:[TABS.find(x=>x.id===S.tab).bf,'الفترة (أ)','الفترة (ب)','الفرق','% التغير'],rows:[...br.map(k=>{const a=ca.get(k)||0,b=cb.get(k)||0,c=cmpChange(a,b,false);return {c:[bd(k),N(a),N(b),c.txt,c.pc]}}),{c:['الإجمالي',N(A.length),N(B.length),cmpChange(A.length,B.length,false).txt,cmpChange(A.length,B.length,false).pc],total:1}]});
+  bl.push({t:'note',text:'أعلى 25 جهة بمجموع السجلات في الفترتين. العدد فقط — لا يوجد مقام (حجم عمل الفرع) في المصدر لحساب معدل خطأ، فلا يُستنتج من الجدول أن فرعًا أفضل أو أسوأ.'});
+ }
+ return {n:A.length+B.length,doc:()=>({title,blocks:bl,footer:`إدارة المراجعة – ARRIVE  |  ${title}`})};
+}
+function showCmp(print){
+ const R=cmpReport();
+ document.getElementById('rpTitle').textContent='معاينة التقرير — مقارنة '+TN[S.tab];
+ document.getElementById('rpStage').innerHTML=`<section class="rp-page r1">${REP1.toHTML(R.doc(),REPLOGO)}</section>`;
+ document.body.classList.add('report-open');document.getElementById('report').scrollTop=0;
+ if(print)setTimeout(()=>window.print(),300);
+}
 function bindCompare(){
  const st=cmpState(),re=()=>{document.getElementById('cmp').outerHTML=comparePanel();bindCompare()};
  cmpToggle.onclick=()=>{st.open=!st.open;re()};
  if(!st.open)return;
  cmpAF.onchange=e=>{st.aF=e.target.value;re()};cmpAT.onchange=e=>{st.aT=e.target.value;re()};
  cmpBF.onchange=e=>{st.bF=e.target.value;re()};cmpBT.onchange=e=>{st.bT=e.target.value;re()};
+ const vOK=st.aF&&st.aT&&st.bF&&st.bT&&st.aF<=st.aT&&st.bF<=st.bT;
+ if(!vOK||!document.getElementById('cmpPrev'))return;
+ cmpPrev.onclick=()=>showCmp(false);cmpPdf.onclick=()=>showCmp(true);
+ cmpDoc.onclick=async()=>{
+  const R=cmpReport(),doc=REP1.toDocx(R.doc(),docx,REPLOGO.split(',')[1]),blob=await docx.Packer.toBlob(doc);
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Comparison_${S.tab}_${st.aF}_${st.aT}_vs_${st.bF}_${st.bT}.docx`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+ };
 }
 
 /* ===== تصدير التقرير (لكل تاب تقرير بنفس تصميم تقرير المطابقة الصباحية) ===== */
