@@ -36911,7 +36911,7 @@ function chips(){const t=TABS.find(x=>x.id===S.tab),a=[];if(S.from||S.to)a.push(
 const LIVE_TABS_KP=['t1','t2','t3','t4','t5'];
 function renderKP(){
  const inP=t=>DATA[t].filter(r=>(!S.from||r.d>=S.from)&&(!S.to||r.d<=S.to));
- let out=`<div class="note">ملخص لأهم مؤشرات كل تاب في نفس الفترة المختارة أعلاه (كل الفروع). التعريفات والمقامات نفسها المستخدمة داخل كل تاب؛ اضغط «فتح التاب» للتفاصيل والرسوم والمقارنة.</div>`;
+ let out='';
  for(const t of LIVE_TABS_KP){
   const rows=inP(t),ds=rows.map(r=>r.d).sort();
   out+=`<div class="panel" style="margin-bottom:18px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><div><h3 style="margin:0">${TN[t]}</h3><div class="sub" style="margin:2px 0 0">${rows.length?`السجلات: <span class="num">${fmt(rows.length)}</span> · ${ds[0]} → ${ds[ds.length-1]}`:'لا توجد سجلات في هذه الفترة'}</div></div><button class="btn" data-go="${t}" type="button">فتح التاب</button></div>${rows.length?`<div class="kpi-row" style="margin-bottom:0">${SRC[t].render(rows).k}</div>`:''}</div>`;
