@@ -36931,11 +36931,67 @@ function draw(){
  if(S.tab==='q'){m.innerHTML=renderQ();return}
  const rows=filtered(),ds=rows.map(r=>r.d).sort();
  m.innerHTML=`<div class="meta">الفترة المعروضة: <span class="num">${ds[0]||'—'} → ${ds[ds.length-1]||'—'}</span> · السجلات: <span class="num">${fmt(rows.length)}</span> من <span class="num">${fmt(DATA[S.tab].length)}</span></div>`;
- m.innerHTML+=exportPanel();
- bindExport();
+ m.innerHTML+=exportPanel()+comparePanel();
+ bindExport();bindCompare();
  if(!rows.length){m.insertAdjacentHTML('beforeend','<div class="empty">لا توجد سجلات بهذه الفلاتر</div>');return}
  const o=SRC[S.tab].render(rows),[cols,trs,tt]=o.tb();
  m.insertAdjacentHTML('beforeend',`<div class="kpi-row">${o.k}</div><div class="panel-grid">${o.g}</div>`+table(cols,trs,100,tt));
+}
+
+/* ===== مقارنة فترتين (لكل تاب) ===== */
+const CMPM={
+ t1:rows=>{const stat=rows.filter(r=>['مطابقه مكتمله','مطابقه غير مكتمله','لم يتم التبليغ بي المطابقه'].includes(r.st)),errs=rows.filter(r=>r.err&&r.err!=='لا يوجد خطأ'),open=errs.filter(r=>r.pr!=='تم الانتهاء'&&r.pr!=='لا يوجد شكوي');
+  return [{l:'إجمالي سجلات المطابقة',n:rows.length},{l:'نسبة المطابقة المكتملة',n:stat.filter(r=>r.st==='مطابقه مكتمله').length,d:stat.length},{l:'نسبة الأخطاء',n:errs.length,d:rows.length,bad:1},{l:'الشكاوى غير المغلقة (من الأخطاء)',n:open.length,d:errs.length,bad:1}]},
+ t2:rows=>{const st=rows.filter(r=>r.ok),c=v=>st.filter(r=>r.ok===v).length;
+  return [{l:'إجمالي شحنات التحويلات',n:rows.length},{l:'نسبة التحويل الصحيح',n:c('تحويل صحيح'),d:st.length},{l:'لم يتم استلامها',n:c('تحويلات لم يتم استلامها'),d:st.length,bad:1},{l:'تحويل خطأ',n:c('تحويل خطا'),d:st.length,bad:1},{l:'عدم تعديل على السيستم',n:c('عدم تعديل عل السيستم'),d:st.length,bad:1}]},
+ t3:rows=>{const c=f=>rows.filter(f).length;
+  return [{l:'إجمالي شحنات المسح',n:rows.length},{l:'تحديث خطأ',n:c(r=>r.why==='تحديث خطا'),d:rows.length,bad:1},{l:'تعديل سعر',n:c(r=>r.why==='تعديل سعر'),d:rows.length,bad:1},{l:'مسح مرتبط بمندوب',n:c(r=>r.fn==='مندوب'),d:rows.length,bad:1}]},
+ t4:rows=>{const c=f=>rows.filter(f).length;
+  return [{l:'إجمالي المشاكل',n:rows.length},{l:'التأخر في الجرد',n:c(r=>r.ty==='التأخر في الجرد'),d:rows.length,bad:1},{l:'عدم الاستلام',n:c(r=>r.ty==='عدم الاستلام'),d:rows.length,bad:1},{l:'لها حالة نهائية',n:c(r=>r.fin),d:rows.length}]},
+ t5:rows=>{const c=f=>rows.filter(f).length;
+  return [{l:'إجمالي الإجراءات',n:rows.length},{l:'تحذير فقط',n:c(r=>r.ac==='تحذير'),d:rows.length},{l:'إحالة للتحقيق',n:c(r=>r.ac.includes('التحقيق')),d:rows.length,bad:1},{l:'تعدي عدد الإجراءات',n:c(r=>r.n==='تعدي عدد الاجراءات'),d:rows.length,bad:1}]}};
+const CMP={};
+function cmpState(){
+ if(!CMP[S.tab]){
+  const mx=DATA[S.tab].reduce((m,r)=>r.d>m?r.d:m,'0'),y=+mx.slice(0,4),mo=+mx.slice(5,7),p=n=>String(n).padStart(2,'0');
+  const py=mo===1?y-1:y,pm=mo===1?12:mo-1;
+  CMP[S.tab]={open:false,aF:`${py}-${p(pm)}-01`,aT:`${py}-${p(pm)}-${p(new Date(py,pm,0).getDate())}`,bF:`${y}-${p(mo)}-01`,bT:mx};
+ }
+ return CMP[S.tab];
+}
+function cmpRows(f,t){const sel=S.sel[S.tab];return DATA[S.tab].filter(r=>r.d>=f&&r.d<=t&&(!sel||sel.has(r.br)))}
+function cmpTbl(h,body){return `<div class="tw"><table><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>`}
+function cmpChange(a,b,rate){
+ const d=b-a,up=d>0?'▲':d<0?'▼':'●',cl=d>0?'#b42318':d<0?'#0f7b4f':'inherit';
+ return {d,up,cl,txt:rate?`${d>0?'+':''}${d.toFixed(1)} نقطة`:`${d>0?'+':''}${fmt(d)}`,pc:rate?'—':(a?`${d>0?'+':''}${(d/a*100).toFixed(1)}%`:'—')};
+}
+function comparePanel(){
+ const st=cmpState();
+ const head=`<div class="xp" id="cmp"><h3>مقارنة بين فترتين</h3><div class="sub">اختر فترتين (من/إلى لكل فترة) لمقارنة مؤشرات «${esc(TN[S.tab])}» بينهما. تطبق نفس فلتر الفرع المحدد أعلاه، وتستقل عن فلتر التاريخ.</div>`;
+ if(!st.open)return head+`<button class="btn solid" id="cmpToggle" type="button">فتح المقارنة</button></div>`;
+ const inp=(id,v)=>`<input type="date" id="${id}" value="${v}">`;
+ let out=head+`<div class="xp-f" style="margin-bottom:12px"><label>الفترة الأولى (أ) — من${inp('cmpAF',st.aF)}</label><label>إلى${inp('cmpAT',st.aT)}</label><label>الفترة الثانية (ب) — من${inp('cmpBF',st.bF)}</label><label>إلى${inp('cmpBT',st.bT)}</label><button class="btn" id="cmpToggle" type="button">إغلاق</button></div>`;
+ const valid=st.aF&&st.aT&&st.bF&&st.bT&&st.aF<=st.aT&&st.bF<=st.bT;
+ if(!valid)return out+`<div class="xp-s">تاريخ البداية يجب أن يسبق تاريخ النهاية في كل فترة.</div></div>`;
+ const A=cmpRows(st.aF,st.aT),B=cmpRows(st.bF,st.bT),mf=CMPM[S.tab],ma=mf(A),mb=mf(B);
+ const fv=m=>m.d!=null?`<span class="num">${m.d?(m.n/m.d*100).toFixed(1)+'%':MISSING}</span> <small class="num">(${fmt(m.n)}/${fmt(m.d)})</small>`:`<span class="num">${fmt(m.n)}</span>`;
+ const kr=ma.map((x,i)=>{const y=mb[i],rate=x.d!=null,va=rate?(x.d?x.n/x.d*100:0):x.n,vb=rate?(y.d?y.n/y.d*100:0):y.n,c=cmpChange(va,vb,rate),col=x.bad?c.cl:'inherit';
+  return `<tr><td>${x.l}</td><td>${fv(x)}</td><td>${fv(y)}</td><td class="num" style="color:${col}">${c.txt}</td><td class="num" style="color:${col}">${c.pc}</td><td style="color:${col}">${c.up}</td></tr>`}).join('');
+ out+=`<div class="xp-s">الفترة أ: <b class="num">${fmt(A.length)}</b> سجل (${st.aF} → ${st.aT}) · الفترة ب: <b class="num">${fmt(B.length)}</b> سجل (${st.bF} → ${st.bT}). الفرق = ب − أ. الأحمر = زيادة في مؤشر خطأ، الأخضر = نقص فيه.</div>`;
+ out+=cmpTbl(['المؤشر','الفترة أ','الفترة ب','الفرق','% التغير',''],kr);
+ const ca=new Map(countBy(A,r=>r.br)),cb=new Map(countBy(B,r=>r.br)),br=[...new Set([...ca.keys(),...cb.keys()])].sort((x,y)=>((cb.get(y)||0)+(ca.get(y)||0))-((cb.get(x)||0)+(ca.get(x)||0))).slice(0,15);
+ if(br.length){
+  const brr=br.map(k=>{const a=ca.get(k)||0,b=cb.get(k)||0,c=cmpChange(a,b,false);return `<tr><td>${esc(k)}</td><td class="num">${fmt(a)}</td><td class="num">${fmt(b)}</td><td class="num">${c.txt}</td><td class="num">${c.pc}</td><td>${c.up}</td></tr>`}).join('');
+  out+=`<h3 style="font-size:14px;margin:16px 0 6px">${esc(TABS.find(x=>x.id===S.tab).bf)}: عدد السجلات في كل فترة (أعلى 15)</h3>`+cmpTbl(['الفرع','الفترة أ','الفترة ب','الفرق','% التغير',''],brr)+`<div class="xp-s">العدد فقط — لا يوجد مقام (حجم الفرع) في المصدر لحساب نسبة.</div>`;
+ }
+ return out+'</div>';
+}
+function bindCompare(){
+ const st=cmpState(),re=()=>{document.getElementById('cmp').outerHTML=comparePanel();bindCompare()};
+ cmpToggle.onclick=()=>{st.open=!st.open;re()};
+ if(!st.open)return;
+ cmpAF.onchange=e=>{st.aF=e.target.value;re()};cmpAT.onchange=e=>{st.aT=e.target.value;re()};
+ cmpBF.onchange=e=>{st.bF=e.target.value;re()};cmpBT.onchange=e=>{st.bT=e.target.value;re()};
 }
 
 /* ===== تصدير التقرير (لكل تاب تقرير بنفس تصميم تقرير المطابقة الصباحية) ===== */
@@ -37063,7 +37119,7 @@ function setSrc(kind,msg){
 function applyLive(resp){
  const gen=localISO(),R=buildLive(resp,gen);
  DATA={...SNAP,...R.data,q:{...SNAP.q,...R.q},ex:R.ex,unk:R.unk,gen,live:{at:resp.updatedAt||new Date().toISOString(),problems:resp.problems||[],tabs:LIVE_TABS.filter(t=>R.data[t])}};
- for(const k of Object.keys(XP))delete XP[k];
+ for(const k of Object.keys(XP))delete XP[k];for(const k of Object.keys(CMP))delete CMP[k];
  chipUpd.textContent=DATA.gen;setSrc('live',(resp.problems||[]).join(' | '));draw();
 }
 let syncing=false;
